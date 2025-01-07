@@ -49,7 +49,7 @@ clone:
   single_branch: true
 mount:
   overlay:
-    base_dir: base
+    lower_dir: lower
     upper_dir: upper
     work_dir: work
     index: off
