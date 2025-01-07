@@ -33,6 +33,7 @@ Flags:
   -d, --dest-dir string      dest dir
   -h, --help                 help for clone
   -r, --repo-url string      repo url
+  -u, --unmount-dir string   unmount dir
 ```
 
 

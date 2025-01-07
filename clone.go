@@ -21,22 +21,16 @@ import (
 const (
 	minArgs = 2
 
-	cloneDepth            = 1
-	mountOverlayLowerDir  = "lower"
-	mountOverlayUpperDir  = "upper"
-	mountOverlayWorkDir   = "work"
-	mountOverlayIndex     = "off"
-	mountOverlayMergedDir = "merged"
-
-	dirPerm  = 0755
-	readSize = 1024
+	cloneDepth = 1
+	dirPerm    = 0755
+	readSize   = 1024
 )
 
 var (
 	configFile string
 	repoUrl    string
-	destPath   string
-	unmountFs  bool
+	destDir    string
+	unmountDir string
 )
 
 type Config struct {
@@ -68,17 +62,17 @@ var rootCmd = &cobra.Command{
 		if len(args) < minArgs {
 			return errors.New("invalid argument\n")
 		}
-		if unmountFs {
-			if repoUrl != "" || destPath != "" {
-				return errors.New("please use either --unmount or --repo-url --dest-path\n")
+		if unmountDir != "" {
+			if repoUrl != "" || destDir != "" {
+				return errors.New("please use either --unmount-dir or --repo-url/--dest-dir\n")
 			}
 		} else {
 			if repoUrl == "" {
 				return errors.New("please use --repo-url\n")
 			}
-			if destPath == "" {
+			if destDir == "" {
 				url := strings.TrimSuffix(repoUrl, ".git")
-				destPath = path.Base(url)
+				destDir = path.Base(url)
 			}
 		}
 		return nil
@@ -118,8 +112,8 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config-file", "c", "", "config file")
 	rootCmd.PersistentFlags().StringVarP(&repoUrl, "repo-url", "r", "", "repo url")
-	rootCmd.PersistentFlags().StringVarP(&destPath, "dest-path", "d", "", "dest path")
-	rootCmd.PersistentFlags().BoolVarP(&unmountFs, "unmount-fs", "u", false, "unmount fs")
+	rootCmd.PersistentFlags().StringVarP(&destDir, "dest-dir", "d", "", "dest dir")
+	rootCmd.PersistentFlags().StringVarP(&unmountDir, "unmount-dir", "u", "", "unmount dir")
 
 	_ = rootCmd.MarkFlagRequired("config-file")
 
@@ -146,8 +140,8 @@ func initConfig() {
 }
 
 func run(ctx context.Context, cfg *Config) error {
-	if unmountFs {
-		if err := unmountFilesystem(ctx, cfg); err != nil {
+	if unmountDir != "" {
+		if err := unmountFs(ctx, cfg); err != nil {
 			return errors.Wrap(err, "failed to unmount fs\n")
 		}
 		return nil
@@ -165,40 +159,17 @@ func run(ctx context.Context, cfg *Config) error {
 }
 
 func mountFs(_ context.Context, cfg *Config) error {
-	lowerDir := mountOverlayLowerDir
-	if cfg.Mount.Overlay.LowerDir != "" {
-		lowerDir = cfg.Mount.Overlay.LowerDir
-	}
-	lowerDir = path.Join(destPath, lowerDir)
-
-	upperDir := mountOverlayUpperDir
-	if cfg.Mount.Overlay.UpperDir != "" {
-		upperDir = cfg.Mount.Overlay.UpperDir
-	}
-	upperDir = path.Join(destPath, upperDir)
-
-	workDir := mountOverlayWorkDir
-	if cfg.Mount.Overlay.WorkDir != "" {
-		workDir = cfg.Mount.Overlay.WorkDir
-	}
-	workDir = path.Join(destPath, workDir)
-
-	index := mountOverlayIndex
-	if cfg.Mount.Overlay.Index != "" {
-		index = cfg.Mount.Overlay.Index
-	}
-
-	mergedDir := mountOverlayMergedDir
-	if cfg.Mount.Overlay.MergedDir != "" {
-		mergedDir = cfg.Mount.Overlay.MergedDir
-	}
-	mergedDir = path.Join(destPath, mergedDir)
+	lowerDir := path.Join(destDir, cfg.Mount.Overlay.LowerDir)
+	upperDir := path.Join(destDir, cfg.Mount.Overlay.UpperDir)
+	workDir := path.Join(destDir, cfg.Mount.Overlay.WorkDir)
+	index := cfg.Mount.Overlay.Index
+	mergedDir := path.Join(destDir, cfg.Mount.Overlay.MergedDir)
 
 	dirs := []string{lowerDir, upperDir, workDir, mergedDir}
 
 	for _, item := range dirs {
 		if err := os.MkdirAll(item, dirPerm); err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to create directory %s\n", item))
+			return errors.Wrap(err, fmt.Sprintf("failed to create dir%s\n", item))
 		}
 	}
 
@@ -213,11 +184,15 @@ func mountFs(_ context.Context, cfg *Config) error {
 	return nil
 }
 
-func unmountFilesystem(_ context.Context, cfg *Config) error {
-	_path := path.Join(destPath, cfg.Mount.Overlay.MergedDir)
+func unmountFs(_ context.Context, cfg *Config) error {
+	mergedDir := path.Join(unmountDir, cfg.Mount.Overlay.MergedDir)
 
-	if err := syscall.Unmount(_path, 0); err != nil {
-		return errors.Wrap(err, "failed to unmount overlay\n")
+	if err := syscall.Unmount(mergedDir, 0); err != nil {
+		return errors.Wrap(err, "failed to unmount overlay fs\n")
+	}
+
+	if err := os.RemoveAll(unmountDir); err != nil {
+		return errors.Wrap(err, "failed to remove dir\n")
 	}
 
 	fmt.Printf("\nSuccessfully unmounted overlay fs\n")
@@ -235,12 +210,12 @@ func cloneRepo(ctx context.Context, cfg *Config) error {
 		depth = cloneDepth
 	}
 
-	_path := path.Join(destPath, cfg.Mount.Overlay.MergedDir)
+	mergedDir := path.Join(destDir, cfg.Mount.Overlay.MergedDir)
 
 	if cfg.Clone.SingleBranch {
-		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--single-branch", repoUrl, _path)
+		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--single-branch", "--", repoUrl, mergedDir)
 	} else {
-		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--no-single-branch", repoUrl, _path)
+		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--no-single-branch", "--", repoUrl, mergedDir)
 	}
 
 	stdout, err := cmd.StdoutPipe()
