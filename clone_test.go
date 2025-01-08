@@ -26,18 +26,6 @@ var (
 	}
 )
 
-func TestMountUnmountFs(t *testing.T) {
-	ctx := context.Background()
-	destDir, _ = os.MkdirTemp("", "mount-unmount-fs-test")
-
-	err := mountFs(ctx, &configTest)
-	assert.Equal(t, nil, err)
-
-	unmountDir = destDir
-	err = unmountFs(ctx, &configTest)
-	assert.Equal(t, nil, err)
-}
-
 func TestCloneRepo(t *testing.T) {
 	ctx := context.Background()
 

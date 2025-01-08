@@ -19,8 +19,6 @@ import (
 )
 
 const (
-	minArgs = 2
-
 	cloneDepth = 1
 	dirPerm    = 0755
 	readSize   = 1024
@@ -58,27 +56,12 @@ type Overlay struct {
 var rootCmd = &cobra.Command{
 	Use:   "clone",
 	Short: "git clone with copy-on-write",
-	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < minArgs {
-			return errors.New("invalid argument\n")
-		}
-		if unmountDir != "" {
-			if repoUrl != "" || destDir != "" {
-				return errors.New("please use either --unmount-dir or --repo-url/--dest-dir\n")
-			}
-		} else {
-			if repoUrl == "" {
-				return errors.New("please use --repo-url\n")
-			}
-			if destDir == "" {
-				url := strings.TrimSuffix(repoUrl, ".git")
-				destDir = path.Base(url)
-			}
-		}
-		return nil
-	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var cfg Config
+		if err := validArgs(); err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
+		}
 		ctx := context.Background()
 		if err := viper.Unmarshal(&cfg); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
@@ -139,6 +122,24 @@ func initConfig() {
 	}
 }
 
+func validArgs() error {
+	if unmountDir != "" {
+		if repoUrl != "" || destDir != "" {
+			return errors.New("please use either --unmount-dir or --repo-url/--dest-dir\n")
+		}
+	} else {
+		if repoUrl == "" {
+			return errors.New("please use --repo-url\n")
+		}
+		if destDir == "" {
+			url := strings.TrimSuffix(repoUrl, ".git")
+			destDir = path.Base(url)
+		}
+	}
+
+	return nil
+}
+
 func run(ctx context.Context, cfg *Config) error {
 	if unmountDir != "" {
 		if err := unmountFs(ctx, cfg); err != nil {
@@ -173,9 +174,10 @@ func mountFs(_ context.Context, cfg *Config) error {
 		}
 	}
 
+	flags := syscall.MS_BIND | syscall.MS_REC
 	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,index=%s", lowerDir, upperDir, workDir, index)
 
-	if err := syscall.Mount("overlay", mergedDir, "overlay", 0, opts); err != nil {
+	if err := syscall.Mount("overlay", mergedDir, "overlay", uintptr(flags), opts); err != nil {
 		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
