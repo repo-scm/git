@@ -170,7 +170,7 @@ func mountFs(_ context.Context, _ *Config) error {
 	index := overlayIndex
 	mergedDir := path.Join(destDir, overlayMergedDir)
 
-	dirs := []string{lowerDir, upperDir, workDir, mergedDir}
+	dirs := []string{sourceDir, lowerDir, upperDir, workDir, mergedDir}
 
 	for _, item := range dirs {
 		if err := os.MkdirAll(item, dirPerm); err != nil {
