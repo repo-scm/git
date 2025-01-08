@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -57,13 +57,13 @@ var rootCmd = &cobra.Command{
 	Use:   "clone",
 	Short: "git clone with copy-on-write",
 	Run: func(cmd *cobra.Command, args []string) {
-		var cfg Config
-		if err := validArgs(); err != nil {
+		ctx := context.Background()
+		if err := validArgs(ctx); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
-		ctx := context.Background()
-		if err := viper.Unmarshal(&cfg); err != nil {
+		cfg, err := loadConfig(ctx)
+		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
@@ -91,8 +91,6 @@ var progressBar = progressbar.NewOptions(1000,
 
 // nolint:gochecknoinits
 func init() {
-	cobra.OnInitialize(initConfig)
-
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config-file", "c", "", "config file")
 	rootCmd.PersistentFlags().StringVarP(&repoUrl, "repo-url", "r", "", "repo url")
 	rootCmd.PersistentFlags().StringVarP(&destDir, "dest-dir", "d", "", "dest dir")
@@ -109,20 +107,7 @@ func main() {
 	}
 }
 
-func initConfig() {
-	if configFile == "" {
-		return
-	}
-
-	viper.SetConfigFile(configFile)
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err.Error())
-	}
-}
-
-func validArgs() error {
+func validArgs(_ context.Context) error {
 	if unmountDir != "" {
 		if repoUrl != "" || destDir != "" {
 			return errors.New("please use either --unmount-dir or --repo-url/--dest-dir\n")
@@ -138,6 +123,29 @@ func validArgs() error {
 	}
 
 	return nil
+}
+
+func loadConfig(_ context.Context) (Config, error) {
+	var cfg Config
+
+	if configFile == "" {
+		return cfg, errors.New("invalid config file\n")
+	}
+
+	if _, err := os.Stat(configFile); err != nil {
+		return cfg, errors.New("config file not found\n")
+	}
+
+	buf, err := os.ReadFile(configFile)
+	if err != nil {
+		return cfg, errors.Wrap(err, "failed to read file\n")
+	}
+
+	if err := yaml.Unmarshal(buf, &cfg); err != nil {
+		return cfg, errors.Wrap(err, "failed to unmarshal file\n")
+	}
+
+	return cfg, nil
 }
 
 func run(ctx context.Context, cfg *Config) error {
