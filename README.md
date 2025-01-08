@@ -48,13 +48,6 @@ An example of configuration in [clone.yml](https://github.com/craftslab/gitclone
 clone:
   depth: 1
   single_branch: true
-mount:
-  overlay:
-    lower_dir: lower
-    upper_dir: upper
-    work_dir: work
-    index: off
-    merged_dir: merged
 ```
 
 

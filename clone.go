@@ -20,8 +20,16 @@ import (
 
 const (
 	cloneDepth = 1
-	dirPerm    = 0755
-	readSize   = 1024
+
+	overlaySourceDir = "source"
+	overlayLowerDir  = "lower"
+	overlayUpperDir  = "upper"
+	overlayWorkDir   = "work"
+	overlayIndex     = "off"
+	overlayMergedDir = "merged"
+
+	dirPerm  = 0755
+	readSize = 1024
 )
 
 var (
@@ -33,24 +41,11 @@ var (
 
 type Config struct {
 	Clone Clone `yaml:"clone"`
-	Mount Mount `yaml:"mount"`
 }
 
 type Clone struct {
 	Depth        int  `yaml:"depth"`
 	SingleBranch bool `yaml:"single_branch"`
-}
-
-type Mount struct {
-	Overlay Overlay `yaml:"overlay"`
-}
-
-type Overlay struct {
-	LowerDir  string `yaml:"lower_dir"`
-	UpperDir  string `yaml:"upper_dir"`
-	WorkDir   string `yaml:"work_dir"`
-	Index     string `yaml:"index"`
-	MergedDir string `yaml:"merged_dir"`
 }
 
 var rootCmd = &cobra.Command{
@@ -167,12 +162,13 @@ func run(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
-func mountFs(_ context.Context, cfg *Config) error {
-	lowerDir := path.Join(destDir, cfg.Mount.Overlay.LowerDir)
-	upperDir := path.Join(destDir, cfg.Mount.Overlay.UpperDir)
-	workDir := path.Join(destDir, cfg.Mount.Overlay.WorkDir)
-	index := cfg.Mount.Overlay.Index
-	mergedDir := path.Join(destDir, cfg.Mount.Overlay.MergedDir)
+func mountFs(_ context.Context, _ *Config) error {
+	sourceDir := path.Join(destDir, overlaySourceDir)
+	lowerDir := path.Join(destDir, overlayLowerDir)
+	upperDir := path.Join(destDir, overlayUpperDir)
+	workDir := path.Join(destDir, overlayWorkDir)
+	index := overlayIndex
+	mergedDir := path.Join(destDir, overlayMergedDir)
 
 	dirs := []string{lowerDir, upperDir, workDir, mergedDir}
 
@@ -185,7 +181,7 @@ func mountFs(_ context.Context, cfg *Config) error {
 	flags := syscall.MS_BIND | syscall.MS_REC
 	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,index=%s", lowerDir, upperDir, workDir, index)
 
-	if err := syscall.Mount("overlay", mergedDir, "overlay", uintptr(flags), opts); err != nil {
+	if err := syscall.Mount(sourceDir, mergedDir, "overlay", uintptr(flags), opts); err != nil {
 		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
@@ -194,8 +190,8 @@ func mountFs(_ context.Context, cfg *Config) error {
 	return nil
 }
 
-func unmountFs(_ context.Context, cfg *Config) error {
-	mergedDir := path.Join(unmountDir, cfg.Mount.Overlay.MergedDir)
+func unmountFs(_ context.Context, _ *Config) error {
+	mergedDir := path.Join(unmountDir, overlayMergedDir)
 
 	if err := syscall.Unmount(mergedDir, 0); err != nil {
 		return errors.Wrap(err, "failed to unmount overlay fs\n")
@@ -220,7 +216,7 @@ func cloneRepo(ctx context.Context, cfg *Config) error {
 		depth = cloneDepth
 	}
 
-	mergedDir := path.Join(destDir, cfg.Mount.Overlay.MergedDir)
+	mergedDir := path.Join(destDir, overlayMergedDir)
 
 	if cfg.Clone.SingleBranch {
 		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--single-branch", "--", repoUrl, mergedDir)

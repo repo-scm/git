@@ -14,15 +14,6 @@ var (
 			Depth:        cloneDepth,
 			SingleBranch: true,
 		},
-		Mount: Mount{
-			Overlay: Overlay{
-				LowerDir:  "lower",
-				UpperDir:  "upper",
-				WorkDir:   "work",
-				Index:     "off",
-				MergedDir: "merged",
-			},
-		},
 	}
 )
 
