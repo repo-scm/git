@@ -46,9 +46,9 @@ Flags:
 
 ## Settings
 
-*gitclone* parameters can be set in [clone.yml](https://github.com/craftslab/gitclone/blob/main/clone.yml).
+*gitclone* parameters can be set in [config.yml](https://github.com/craftslab/gitclone/blob/main/config.yml).
 
-An example of configuration in [clone.yml](https://github.com/craftslab/gitclone/blob/main/clone.yml):
+An example of configuration in [config.yml](https://github.com/craftslab/gitclone/blob/main/config.yml):
 
 ```yaml
 clone:

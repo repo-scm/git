@@ -15,13 +15,13 @@ all-test: go-all-test
 
 
 go-build: FORCE
-	./build.sh
+	./script/build.sh
 
 go-lint: FORCE
-	./lint.sh
+	./script/lint.sh
 
 go-test: FORCE
-	./test.sh report
+	./script/test.sh report
 
 go-all-test: FORCE
-	./test.sh all
+	./script/test.sh all
