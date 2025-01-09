@@ -86,6 +86,8 @@ var progressBar = progressbar.NewOptions(1000,
 
 // nolint:gochecknoinits
 func init() {
+	cobra.OnInitialize()
+
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config-file", "c", "", "config file")
 	rootCmd.PersistentFlags().StringVarP(&repoUrl, "repo-url", "r", "", "repo url")
 	rootCmd.PersistentFlags().StringVarP(&destDir, "dest-dir", "d", "", "dest dir")
