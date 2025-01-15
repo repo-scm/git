@@ -1,6 +1,6 @@
 module github.com/craftslab/gitclone
 
-go 1.23.4
+go 1.23.1
 
 require (
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213
