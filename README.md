@@ -38,6 +38,7 @@ Flags:
   -c, --config-file string   config file
   -d, --dest-dir string      dest dir
   -h, --help                 help for clone
+  -b, --repo-branch string   repo branch
   -r, --repo-url string      repo url
   -u, --unmount-dir string   unmount dir
 ```

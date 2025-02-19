@@ -1,25 +1,28 @@
+//go:build linux
+
 package main
 
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/k0kubun/go-ansi"
 	"github.com/pkg/errors"
-	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	cloneDepth = 1
+	branchName = "master"
+
+	cloneDepth    = 1
+	cloneDuration = 100 * time.Millisecond
 
 	overlaySourceDir = "source"
 	overlayLowerDir  = "lower"
@@ -28,13 +31,13 @@ const (
 	overlayIndex     = "off"
 	overlayMergedDir = "merged"
 
-	dirPerm  = 0755
-	readSize = 1024
+	dirPerm = 0755
 )
 
 var (
 	configFile string
 	repoUrl    string
+	repoBranch string
 	destDir    string
 	unmountDir string
 )
@@ -69,28 +72,14 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var progressBar = progressbar.NewOptions(1000,
-	progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
-	progressbar.OptionEnableColorCodes(true),
-	progressbar.OptionShowBytes(false),
-	progressbar.OptionSetWidth(15),
-	progressbar.OptionSetDescription("[cyan]Cloning repository..."),
-	progressbar.OptionSetTheme(progressbar.Theme{
-		Saucer:        "[green]=[reset]",
-		SaucerHead:    "[green]>[reset]",
-		SaucerPadding: " ",
-		BarStart:      "[",
-		BarEnd:        "]",
-	}),
-)
-
 // nolint:gochecknoinits
 func init() {
 	cobra.OnInitialize()
 
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config-file", "c", "", "config file")
-	rootCmd.PersistentFlags().StringVarP(&repoUrl, "repo-url", "r", "", "repo url")
 	rootCmd.PersistentFlags().StringVarP(&destDir, "dest-dir", "d", "", "dest dir")
+	rootCmd.PersistentFlags().StringVarP(&repoUrl, "repo-url", "r", "", "repo url")
+	rootCmd.PersistentFlags().StringVarP(&repoBranch, "repo-branch", "b", "", "repo branch")
 	rootCmd.PersistentFlags().StringVarP(&unmountDir, "unmount-dir", "u", "", "unmount dir")
 
 	_ = rootCmd.MarkFlagRequired("config-file")
@@ -112,6 +101,9 @@ func validArgs(_ context.Context) error {
 	} else {
 		if repoUrl == "" {
 			return errors.New("please use --repo-url\n")
+		}
+		if repoBranch == "" {
+			repoBranch = branchName
 		}
 		if destDir == "" {
 			url := strings.TrimSuffix(repoUrl, ".git")
@@ -221,41 +213,35 @@ func cloneRepo(ctx context.Context, cfg *Config) error {
 	mergedDir := path.Join(destDir, overlayMergedDir)
 
 	if cfg.Clone.SingleBranch {
-		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--single-branch", "--", repoUrl, mergedDir)
+		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--single-branch", "--branch", repoBranch, "--", repoUrl, mergedDir)
 	} else {
-		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--no-single-branch", "--", repoUrl, mergedDir)
-	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return errors.Wrap(err, "failed to get stdout pipe\n")
+		cmd = exec.CommandContext(ctx, "git", "clone", "--depth", strconv.Itoa(depth), "--no-single-branch", "--branch", repoBranch, "--", repoUrl, mergedDir)
 	}
 
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "failed to start cmd\n")
 	}
 
-	updateProgressBar(stdout)
+	done := make(chan error)
+	go func() {
+		done <- cmd.Wait()
+	}()
 
-	if err := cmd.Wait(); err != nil {
-		return errors.Wrap(err, "failed to wait cmd\n")
-	}
-
-	fmt.Printf("\nSuccessfully cloned repo %s\n", repoUrl)
-
-	return nil
-}
-
-func updateProgressBar(closer io.ReadCloser) {
-	buf := make([]byte, readSize)
+	spinner := []string{"-", "\\", "|", "/"}
+	i := 0
 
 	for {
-		n, err := closer.Read(buf)
-		if n > 0 {
-			_ = progressBar.Add(1)
-		}
-		if err != nil {
-			break
+		select {
+		case err := <-done:
+			if err != nil {
+				return errors.Wrap(err, "failed to wait cmd\n")
+			} else {
+				fmt.Printf("\nSuccessfully cloned repo %s\n", repoUrl)
+				return nil
+			}
+		case <-time.After(cloneDuration):
+			fmt.Printf("\rCloning repository... %s", spinner[i])
+			i = (i + 1) % len(spinner)
 		}
 	}
 }
