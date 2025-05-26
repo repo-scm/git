@@ -35,6 +35,11 @@ const (
 )
 
 var (
+	BuildTime string
+	CommitID  string
+)
+
+var (
 	configFile string
 	repoUrl    string
 	repoBranch string
@@ -52,8 +57,9 @@ type Clone struct {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "clone",
-	Short: "git clone with copy-on-write",
+	Use:     "clone",
+	Short:   "git clone with copy-on-write",
+	Version: BuildTime + "-" + CommitID,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		if err := validArgs(ctx); err != nil {
