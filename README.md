@@ -1,5 +1,6 @@
 # gitclone
 
+[![Build Status](https://github.com/craftslab/gitclone/workflows/ci/badge.svg?branch=main&event=push)](https://github.com/craftslab/gitclone/actions?query=workflow%3Aci)
 [![Go Report Card](https://goreportcard.com/badge/github.com/craftslab/gitclone)](https://goreportcard.com/report/github.com/craftslab/gitclone)
 [![License](https://img.shields.io/github/license/craftslab/gitclone.svg)](https://github.com/craftslab/gitclone/blob/main/LICENSE)
 [![Tag](https://img.shields.io/github/tag/craftslab/gitclone.svg)](https://github.com/craftslab/gitclone/tags)
