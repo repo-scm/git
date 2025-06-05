@@ -60,6 +60,18 @@ clone:
 
 
 
+## Example
+
+```bash
+# Clone repo
+sudo ./clone -c config.yml -r https://github.com/craftslab/gitclone.git -b main -d gitclone
+
+# Umount repo
+sudo ./clone -c config.yml -u gitclone
+```
+
+
+
 ## License
 
 Project License can be found [here](LICENSE).
