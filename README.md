@@ -60,13 +60,69 @@ clone:
 
 
 
+## Overlay
+
+```
+gitclone
+├── lower
+├── merged
+├── source
+├── upper
+└── work
+```
+
+- `lower`: Read-only base layer(s)
+- `merged`: The combined view
+- `upper`: Read-write layer for changes
+- `work`: Temporary working space
+
+
+
 ## Example
 
-```bash
-# Clone repo
-sudo ./clone -c config.yml -r https://github.com/craftslab/gitclone.git -b main -d gitclone
+### Clone
 
-# Umount repo
+```bash
+sudo ./clone -c config.yml -r https://github.com/craftslab/gitclone.git -b main -d gitclone
+```
+
+```
+gitclone
+├── lower
+├── merged
+│   ├── clone.go
+│   ├── clone_test.go
+│   ├── config.yml
+│   ├── go.mod
+│   ├── go.sum
+│   ├── LICENSE
+│   ├── Makefile
+│   ├── README.md
+│   └── script
+├── source
+│   ├── clone.go
+│   ├── clone_test.go
+│   ├── config.yml
+│   ├── go.mod
+│   ├── go.sum
+│   ├── LICENSE
+│   ├── Makefile
+│   ├── README.md
+│   └── script
+├── upper
+└── work
+```
+
+### Test
+
+```bash
+echo "new file" | sudo tee gitclone/merged/newfile.txt
+echo "modified" | sudo tee gitclone/merged/README.md
+```
+
+### Umount
+
+```bash
 sudo ./clone -c config.yml -u gitclone
 ```
 
