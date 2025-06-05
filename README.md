@@ -37,7 +37,7 @@ Flags:
 
 ## Example
 
-### Clone
+### Mount
 
 ```bash
 sudo ./git --mount /mnt/overlay/project --repository /path/to/project
@@ -69,17 +69,23 @@ sudo ./git --unmount /mnt/overlay/project --repository /path/to/project
 ## Overlay
 
 ```
-/mnt/project
-├── lower
-├── upper
-├── work
-└── merged
+/path/to/project
+/path/to/cow-project
 ```
 
-- `lower`: Read-only base layer
-- `upper`: Read-write layer for changes
-- `work`: Temporary working space
-- `merged`: The combined view
+```
+/mnt/overlay/
+├── repo
+│   ├── LICENSE
+│   └── README.md
+└── work-repo
+    └── work
+```
+
+- `/path/to/project`: Read-only base layer (lower)
+- `/path/to/cow-project`: Read-write layer for changes (upper)
+- `/mnt/overlay/work-repo/work`: Temporary working space (work)
+- `/mnt/overlay/repo`: The combined view (merged)
 
 
 
