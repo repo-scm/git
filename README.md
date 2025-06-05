@@ -1,80 +1,37 @@
-# gitclone
+# git
 
-[![Build Status](https://github.com/craftslab/gitclone/workflows/ci/badge.svg?branch=main&event=push)](https://github.com/craftslab/gitclone/actions?query=workflow%3Aci)
-[![Go Report Card](https://goreportcard.com/badge/github.com/craftslab/gitclone)](https://goreportcard.com/report/github.com/craftslab/gitclone)
-[![License](https://img.shields.io/github/license/craftslab/gitclone.svg)](https://github.com/craftslab/gitclone/blob/main/LICENSE)
-[![Tag](https://img.shields.io/github/tag/craftslab/gitclone.svg)](https://github.com/craftslab/gitclone/tags)
+[![Build Status](https://github.com/repo-scm/git/workflows/ci/badge.svg?branch=main&event=push)](https://github.com/repo-scm/git/actions?query=workflow%3Aci)
+[![Go Report Card](https://goreportcard.com/badge/github.com/repo-scm/git)](https://goreportcard.com/report/github.com/repo-scm/git)
+[![License](https://img.shields.io/github/license/repo-scm/git.svg)](https://github.com/repo-scm/git/blob/main/LICENSE)
+[![Tag](https://img.shields.io/github/tag/repo-scm/git.svg)](https://github.com/repo-scm/git/tags)
 
 
 
 ## Introduction
 
-git clone with copy-on-write
+git with copy-on-write
 
 
 
 ## Prerequisites
 
-- Go >= 1.22.0
-
-
-
-## Build
-
-```bash
-make build
-```
+- Go >= 1.24.0
 
 
 
 ## Usage
 
 ```
-git clone with copy-on-write
-
 Usage:
-  clone [flags]
+  git [flags]
 
 Flags:
-  -c, --config-file string   config file
-  -d, --dest-dir string      dest dir
-  -h, --help                 help for clone
-  -b, --repo-branch string   repo branch
-  -r, --repo-url string      repo url
-  -u, --unmount-dir string   unmount dir
+  -h, --help                help for git
+  -m, --mount string        mount path
+  -r, --repository string   repository path
+  -u, --unmount string      unmount path
+  -v, --version             version for git
 ```
-
-
-
-## Settings
-
-*gitclone* parameters can be set in [config.yml](https://github.com/craftslab/gitclone/blob/main/config.yml).
-
-An example of configuration in [config.yml](https://github.com/craftslab/gitclone/blob/main/config.yml):
-
-```yaml
-clone:
-  depth: 1
-  single_branch: true
-```
-
-
-
-## Overlay
-
-```
-gitclone
-├── lower
-├── merged
-├── source
-├── upper
-└── work
-```
-
-- `lower`: Read-only base layer(s)
-- `merged`: The combined view
-- `upper`: Read-write layer for changes
-- `work`: Temporary working space
 
 
 
@@ -83,48 +40,46 @@ gitclone
 ### Clone
 
 ```bash
-sudo ./clone -c config.yml -r https://github.com/craftslab/gitclone.git -b main -d gitclone
-```
+sudo ./git --mount /mnt/overlay/project --repository /path/to/project
 
-```
-gitclone
-├── lower
-├── merged
-│   ├── clone.go
-│   ├── clone_test.go
-│   ├── config.yml
-│   ├── go.mod
-│   ├── go.sum
-│   ├── LICENSE
-│   ├── Makefile
-│   ├── README.md
-│   └── script
-├── source
-│   ├── clone.go
-│   ├── clone_test.go
-│   ├── config.yml
-│   ├── go.mod
-│   ├── go.sum
-│   ├── LICENSE
-│   ├── Makefile
-│   ├── README.md
-│   └── script
-├── upper
-└── work
+sudo chown -R $USER:$USER /mnt/overlay/project
+sudo chown -R $USER:$USER /path/to/cow-project
 ```
 
 ### Test
 
 ```bash
-echo "new file" | sudo tee gitclone/merged/newfile.txt
-echo "modified" | sudo tee gitclone/merged/README.md
+cd /mnt/overlay/project
+
+echo "new file" | tee newfile.txt
+echo "modified" | tee README.md
+
+git commit -m "project changes"
+git push origin main
 ```
 
 ### Umount
 
 ```bash
-sudo ./clone -c config.yml -u gitclone
+sudo ./git --unmount /mnt/overlay/project --repository /path/to/project
 ```
+
+
+
+## Overlay
+
+```
+/mnt/project
+├── lower
+├── upper
+├── work
+└── merged
+```
+
+- `lower`: Read-only base layer
+- `upper`: Read-write layer for changes
+- `work`: Temporary working space
+- `merged`: The combined view
 
 
 

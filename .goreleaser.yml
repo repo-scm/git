@@ -1,15 +1,17 @@
 ---
 builds:
-  - id: clone
+  - id: git
     env:
       - CGO_ENABLED=0
     goos:
+      - darwin
       - linux
+      - windows
     goarch:
       - amd64
     dir: .
-    main: clone.go
-    binary: clone
+    main: main.go
+    binary: git
     flags:
       - -trimpath
     ldflags: -s -w -X main.BuildTime={{.Date}} -X main.CommitID={{.ShortCommit}}
