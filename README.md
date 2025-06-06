@@ -58,7 +58,7 @@ git commit -m "project changes"
 git push origin main
 ```
 
-### Umount
+### Unmount
 
 ```bash
 sudo ./git --unmount /mnt/overlay/project --repository /path/to/project
