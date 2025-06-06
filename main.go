@@ -6,7 +6,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
+	"strings"
 	"syscall"
 
 	"github.com/pkg/errors"
@@ -26,6 +28,8 @@ var (
 	mountPath      string
 	repositoryPath string
 	unmountPath    string
+
+	sshfsMount string
 )
 
 var rootCmd = &cobra.Command{
@@ -47,10 +51,11 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&mountPath, "mount", "m", "", "mount path")
 	rootCmd.PersistentFlags().StringVarP(&unmountPath, "unmount", "u", "", "unmount path")
-	rootCmd.PersistentFlags().StringVarP(&repositoryPath, "repository", "r", "", "repository path")
+	rootCmd.PersistentFlags().StringVarP(&repositoryPath, "repository", "r", "", "repository path (user@host:/remote/repo:/local/repo)")
 
 	rootCmd.MarkFlagsOneRequired("mount", "unmount")
 	rootCmd.MarkFlagsMutuallyExclusive("mount", "unmount")
+	_ = rootCmd.MarkFlagRequired("repository")
 
 	rootCmd.Root().CompletionOptions.DisableDefaultCmd = true
 }
@@ -63,20 +68,61 @@ func main() {
 
 func run(ctx context.Context) error {
 	if unmountPath != "" {
-		if err := unmountFs(ctx); err != nil {
-			return errors.Wrap(err, "failed to unmount fs\n")
+		if err := unmountOverlay(ctx); err != nil {
+			return errors.Wrap(err, "failed to unmount overlay\n")
+		}
+		if err := unmountSshfs(ctx); err != nil {
+			return errors.Wrap(err, "failed to unmount sshfs\n")
 		}
 		return nil
 	}
 
-	if err := mountFs(ctx); err != nil {
-		return errors.Wrap(err, "failed to mount fs\n")
+	if err := mountSshfs(ctx); err != nil {
+		return errors.Wrap(err, "failed to mount sshfs\n")
+	}
+
+	if err := mountOverlay(ctx); err != nil {
+		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
 	return nil
 }
 
-func mountFs(_ context.Context) error {
+func mountSshfs(_ context.Context) error {
+	_path := strings.Split(repositoryPath, ":")
+	sshfsMount = _path[len(_path)-1]
+
+	cmd := exec.Command("sshfs",
+		repositoryPath,
+		sshfsMount,
+		"-o", "allow_other",
+		"-o", "default_permissions",
+		"-o", "follow_symlinks",
+	)
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to mount sshfs\n")
+	}
+
+	fmt.Printf("\nSuccessfully mounted sshfs at %s\n", sshfsMount)
+
+	return nil
+}
+
+func unmountSshfs(_ context.Context) error {
+	_path := strings.Split(repositoryPath, ":")
+	sshfsMount = _path[len(_path)-1]
+
+	cmd := exec.Command("fusermount", "-u", sshfsMount)
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to unmount sshfs\n")
+	}
+
+	return nil
+}
+
+func mountOverlay(_ context.Context) error {
 	if repositoryPath == "" {
 		return errors.New("repository path is required\n")
 	}
@@ -103,12 +149,12 @@ func mountFs(_ context.Context) error {
 		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
-	fmt.Printf("\nSuccessfully mounted overlay fs at %s\n", upperPath)
+	fmt.Printf("\nSuccessfully mounted overlay at %s\n", upperPath)
 
 	return nil
 }
 
-func unmountFs(_ context.Context) error {
+func unmountOverlay(_ context.Context) error {
 	repositoryDir := path.Dir(path.Clean(repositoryPath))
 
 	unmountDir := path.Dir(path.Clean(unmountPath))
@@ -118,7 +164,7 @@ func unmountFs(_ context.Context) error {
 	workPath := path.Join(unmountDir, "work-"+unmountName)
 
 	if err := syscall.Unmount(unmountPath, 0); err != nil {
-		return errors.Wrap(err, "failed to unmount overlay fs\n")
+		return errors.Wrap(err, "failed to unmount overlay\n")
 	}
 
 	if err := os.RemoveAll(unmountPath); err != nil {
@@ -133,7 +179,7 @@ func unmountFs(_ context.Context) error {
 		return errors.Wrap(err, "failed to remove directory\n")
 	}
 
-	fmt.Printf("\nSuccessfully unmounted overlay fs\n")
+	fmt.Printf("\nSuccessfully unmounted overlay\n")
 
 	return nil
 }

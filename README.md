@@ -28,7 +28,7 @@ Usage:
 Flags:
   -h, --help                help for git
   -m, --mount string        mount path
-  -r, --repository string   repository path
+  -r, --repository string   repository path (user@host:/remote/repo:/local/repo)
   -u, --unmount string      unmount path
   -v, --version             version for git
 ```
@@ -84,8 +84,8 @@ sudo ./git --unmount /mnt/overlay/project --repository /path/to/project
 
 - `/path/to/project`: Read-only base layer (lower)
 - `/path/to/cow-project`: Read-write layer for changes (upper)
-- `/mnt/overlay/work-repo/work`: Temporary working space (work)
 - `/mnt/overlay/repo`: The combined view (merged)
+- `/mnt/overlay/work-repo/work`: Temporary working space (work)
 
 
 
