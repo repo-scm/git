@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 	"syscall"
 
@@ -67,34 +68,54 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	remoteRepo, localRepo := parsePath(ctx, repositoryPath)
+
 	if unmountPath != "" {
-		if err := unmountOverlay(ctx); err != nil {
+		if err := unmountOverlay(ctx, localRepo, unmountPath); err != nil {
 			return errors.Wrap(err, "failed to unmount overlay\n")
 		}
-		if err := unmountSshfs(ctx); err != nil {
-			return errors.Wrap(err, "failed to unmount sshfs\n")
+		if remoteRepo != "" {
+			if err := unmountSshfs(ctx, localRepo); err != nil {
+				return errors.Wrap(err, "failed to unmount sshfs\n")
+			}
 		}
 		return nil
 	}
 
-	if err := mountSshfs(ctx); err != nil {
-		return errors.Wrap(err, "failed to mount sshfs\n")
+	if remoteRepo != "" {
+		if err := mountSshfs(ctx, remoteRepo, localRepo); err != nil {
+			return errors.Wrap(err, "failed to mount sshfs\n")
+		}
 	}
 
-	if err := mountOverlay(ctx); err != nil {
+	if err := mountOverlay(ctx, localRepo, mountPath); err != nil {
 		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
 	return nil
 }
 
-func mountSshfs(_ context.Context) error {
-	_path := strings.Split(repositoryPath, ":")
-	sshfsMount = _path[len(_path)-1]
+func parsePath(_ context.Context, name string) (remote, local string) {
+	// Remote format: user@host:/remote/repo:/local/repo
+	remotePattern := `^([^@]+)@([^:]+):([^:]+):([^:]+)$`
+	remoteRegex := regexp.MustCompile(remotePattern)
+
+	if matches := remoteRegex.FindStringSubmatch(name); matches != nil {
+		_path := strings.Split(name, ":")
+		return _path[0] + ":" + _path[1], _path[2]
+	}
+
+	return "", name
+}
+
+func mountSshfs(_ context.Context, remote, local string) error {
+	if remote == "" || local == "" {
+		return errors.New("remote and local are required\n")
+	}
 
 	cmd := exec.Command("sshfs",
-		repositoryPath,
-		sshfsMount,
+		remote,
+		path.Dir(path.Clean(local)),
 		"-o", "allow_other",
 		"-o", "default_permissions",
 		"-o", "follow_symlinks",
@@ -109,11 +130,16 @@ func mountSshfs(_ context.Context) error {
 	return nil
 }
 
-func unmountSshfs(_ context.Context) error {
-	_path := strings.Split(repositoryPath, ":")
-	sshfsMount = _path[len(_path)-1]
+func unmountSshfs(_ context.Context, local string) error {
+	if local == "" {
+		return errors.New("local is required\n")
+	}
 
-	cmd := exec.Command("fusermount", "-u", sshfsMount)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(local)
+
+	cmd := exec.Command("fusermount", "-u", path.Dir(path.Clean(local)))
 
 	if err := cmd.Run(); err != nil {
 		return errors.Wrap(err, "failed to unmount sshfs\n")
@@ -122,20 +148,20 @@ func unmountSshfs(_ context.Context) error {
 	return nil
 }
 
-func mountOverlay(_ context.Context) error {
-	if repositoryPath == "" {
-		return errors.New("repository path is required\n")
+func mountOverlay(_ context.Context, repo, mount string) error {
+	if repo == "" || mount == "" {
+		return errors.New("repo and mount are required\n")
 	}
 
-	repositoryDir := path.Dir(path.Clean(repositoryPath))
+	repoDir := path.Dir(path.Clean(repo))
 
-	mountDir := path.Dir(path.Clean(mountPath))
-	mountName := path.Base(path.Clean(mountPath))
+	mountDir := path.Dir(path.Clean(mount))
+	mountName := path.Base(path.Clean(mount))
 
-	upperPath := path.Join(repositoryDir, "cow-"+mountName)
+	upperPath := path.Join(repoDir, "cow-"+mountName)
 	workPath := path.Join(mountDir, "work-"+mountName)
 
-	dirs := []string{mountPath, upperPath, workPath}
+	dirs := []string{mount, upperPath, workPath}
 
 	for _, item := range dirs {
 		if err := os.MkdirAll(item, directoryPerm); err != nil {
@@ -143,9 +169,9 @@ func mountOverlay(_ context.Context) error {
 		}
 	}
 
-	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,index=off", repositoryPath, upperPath, workPath)
+	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,index=off", repo, upperPath, workPath)
 
-	if err := syscall.Mount("overlay", mountPath, "overlay", 0, opts); err != nil {
+	if err := syscall.Mount("overlay", mount, "overlay", 0, opts); err != nil {
 		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
@@ -154,29 +180,26 @@ func mountOverlay(_ context.Context) error {
 	return nil
 }
 
-func unmountOverlay(_ context.Context) error {
-	repositoryDir := path.Dir(path.Clean(repositoryPath))
+func unmountOverlay(_ context.Context, repo, unmount string) error {
+	if repo == "" || unmount == "" {
+		return errors.New("repo and unmount are required\n")
+	}
 
-	unmountDir := path.Dir(path.Clean(unmountPath))
-	unmountName := path.Base(path.Clean(unmountPath))
+	unmountDir := path.Dir(path.Clean(unmount))
+	unmountName := path.Base(path.Clean(unmount))
 
-	upperPath := path.Join(repositoryDir, "cow-"+unmountName)
+	repoPath := path.Dir(path.Clean(repo))
+	upperPath := path.Join(repoPath, "cow-"+unmountName)
 	workPath := path.Join(unmountDir, "work-"+unmountName)
 
-	if err := syscall.Unmount(unmountPath, 0); err != nil {
+	defer func(unmount, workPath, upperPath string) {
+		_ = os.RemoveAll(unmount)
+		_ = os.RemoveAll(workPath)
+		_ = os.RemoveAll(upperPath)
+	}(unmount, workPath, upperPath)
+
+	if err := syscall.Unmount(unmount, 0); err != nil {
 		return errors.Wrap(err, "failed to unmount overlay\n")
-	}
-
-	if err := os.RemoveAll(unmountPath); err != nil {
-		return errors.Wrap(err, "failed to remove directory\n")
-	}
-
-	if err := os.RemoveAll(workPath); err != nil {
-		return errors.Wrap(err, "failed to remove directory\n")
-	}
-
-	if err := os.RemoveAll(upperPath); err != nil {
-		return errors.Wrap(err, "failed to remove directory\n")
 	}
 
 	fmt.Printf("\nSuccessfully unmounted overlay\n")

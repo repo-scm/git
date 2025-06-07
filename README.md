@@ -37,55 +37,85 @@ Flags:
 
 ## Example
 
-### Mount
+### 1. Overlay
+
+#### Mount
 
 ```bash
-sudo ./git --mount /mnt/overlay/project --repository /path/to/project
+sudo ./git --mount /mnt/overlay/repo --repository /path/to/repo
 
-sudo chown -R $USER:$USER /mnt/overlay/project
-sudo chown -R $USER:$USER /path/to/cow-project
+sudo chown -R $USER:$USER /mnt/overlay/repo
+sudo chown -R $USER:$USER /path/to/cow-repo
 ```
 
-### Test
+#### Test
 
 ```bash
-cd /mnt/overlay/project
+cd /mnt/overlay/repo
 
 echo "new file" | tee newfile.txt
 echo "modified" | tee README.md
 
-git commit -m "project changes"
+git commit -m "repo changes"
 git push origin main
 ```
 
-### Unmount
+#### Unmount
 
 ```bash
-sudo ./git --unmount /mnt/overlay/project --repository /path/to/project
+sudo ./git --unmount /mnt/overlay/repo --repository /path/to/repo
 ```
 
+#### Screenshot
 
+![overlay](overlay.png)
 
-## Overlay
+### 2. SSHFS and Overlay
 
-```
-/path/to/project
-/path/to/cow-project
-```
+#### Config
 
-```
-/mnt/overlay/
-├── repo
-│   ├── LICENSE
-│   └── README.md
-└── work-repo
-    └── work
+```bash
+cat $HOME/.ssh/config
 ```
 
-- `/path/to/project`: Read-only base layer (lower)
-- `/path/to/cow-project`: Read-write layer for changes (upper)
-- `/mnt/overlay/repo`: The combined view (merged)
-- `/mnt/overlay/work-repo/work`: Temporary working space (work)
+```
+Host *
+    HostName <host>
+    User <user>
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+```
+
+#### Mount
+
+```bash
+sudo ./git --mount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo
+
+sudo chown -R $USER:$USER /mnt/overlay/repo
+sudo chown -R $USER:$USER /path/to/cow-repo
+```
+
+#### Test
+
+```bash
+cd /mnt/overlay/repo
+
+echo "new file" | tee newfile.txt
+echo "modified" | tee README.md
+
+git commit -m "repo changes"
+git push origin main
+```
+
+#### Unmount
+
+```bash
+sudo ./git --unmount /mnt/overlay/repo --repository /local/repo
+```
+
+#### Screenshot
+
+![sshfs-overlay](sshfs-overlay.png)
 
 
 
