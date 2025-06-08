@@ -29,6 +29,7 @@ Flags:
   -h, --help                help for git
   -m, --mount string        mount path
   -r, --repository string   repository path (user@host:/remote/repo:/local/repo)
+  -s, --sshkey string       sshkey file (/path/to/id_rsa)
   -u, --unmount string      unmount path
   -v, --version             version for git
 ```
@@ -89,7 +90,7 @@ Host *
 #### Mount
 
 ```bash
-sudo ./git --mount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo
+sudo ./git --mount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo --sshkey /path/to/id_rsa
 
 sudo chown -R $USER:$USER /mnt/overlay/repo
 sudo chown -R $USER:$USER /path/to/cow-repo

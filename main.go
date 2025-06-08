@@ -27,8 +27,9 @@ var (
 
 var (
 	mountPath      string
-	repositoryPath string
 	unmountPath    string
+	repositoryPath string
+	sshkeyFile     string
 
 	sshfsMount string
 )
@@ -53,6 +54,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&mountPath, "mount", "m", "", "mount path")
 	rootCmd.PersistentFlags().StringVarP(&unmountPath, "unmount", "u", "", "unmount path")
 	rootCmd.PersistentFlags().StringVarP(&repositoryPath, "repository", "r", "", "repository path (user@host:/remote/repo:/local/repo)")
+	rootCmd.PersistentFlags().StringVarP(&sshkeyFile, "sshkey", "s", "", "sshkey file (/path/to/id_rsa)")
 
 	rootCmd.MarkFlagsOneRequired("mount", "unmount")
 	rootCmd.MarkFlagsMutuallyExclusive("mount", "unmount")
@@ -83,7 +85,7 @@ func run(ctx context.Context) error {
 	}
 
 	if remoteRepo != "" {
-		if err := mountSshfs(ctx, remoteRepo, localRepo); err != nil {
+		if err := mountSshfs(ctx, sshkeyFile, remoteRepo, localRepo); err != nil {
 			return errors.Wrap(err, "failed to mount sshfs\n")
 		}
 	}
@@ -108,7 +110,7 @@ func parsePath(_ context.Context, name string) (remote, local string) {
 	return "", name
 }
 
-func mountSshfs(_ context.Context, remote, local string) error {
+func mountSshfs(_ context.Context, key, remote, local string) error {
 	if remote == "" || local == "" {
 		return errors.New("remote and local are required\n")
 	}
@@ -123,6 +125,7 @@ func mountSshfs(_ context.Context, remote, local string) error {
 		"-o", "allow_other",
 		"-o", "default_permissions",
 		"-o", "follow_symlinks",
+		"-o", fmt.Sprintf("IdentityFile=%s,StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null,port=22", path.Clean(key)),
 	)
 
 	if err := cmd.Run(); err != nil {
