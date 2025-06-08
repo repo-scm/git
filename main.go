@@ -70,14 +70,14 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	remoteRepo, localRepo := parsePath(ctx, repositoryPath)
+	remoteRepo, localRepo := ParsePath(ctx, repositoryPath)
 
 	if unmountPath != "" {
-		if err := unmountOverlay(ctx, localRepo, unmountPath); err != nil {
+		if err := UnmountOverlay(ctx, localRepo, unmountPath); err != nil {
 			return errors.Wrap(err, "failed to unmount overlay\n")
 		}
 		if remoteRepo != "" {
-			if err := unmountSshfs(ctx, localRepo); err != nil {
+			if err := UnmountSshfs(ctx, localRepo); err != nil {
 				return errors.Wrap(err, "failed to unmount sshfs\n")
 			}
 		}
@@ -85,19 +85,19 @@ func run(ctx context.Context) error {
 	}
 
 	if remoteRepo != "" {
-		if err := mountSshfs(ctx, sshkeyFile, remoteRepo, localRepo); err != nil {
+		if err := MountSshfs(ctx, sshkeyFile, remoteRepo, localRepo); err != nil {
 			return errors.Wrap(err, "failed to mount sshfs\n")
 		}
 	}
 
-	if err := mountOverlay(ctx, localRepo, mountPath); err != nil {
+	if err := MountOverlay(ctx, localRepo, mountPath); err != nil {
 		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
 	return nil
 }
 
-func parsePath(_ context.Context, name string) (remote, local string) {
+func ParsePath(_ context.Context, name string) (remote, local string) {
 	// Remote format: user@host:/remote/repo:/local/repo
 	remotePattern := `^([^@]+)@([^:]+):([^:]+):([^:]+)$`
 	remoteRegex := regexp.MustCompile(remotePattern)
@@ -110,7 +110,7 @@ func parsePath(_ context.Context, name string) (remote, local string) {
 	return "", name
 }
 
-func mountSshfs(_ context.Context, key, remote, local string) error {
+func MountSshfs(_ context.Context, key, remote, local string) error {
 	if remote == "" || local == "" {
 		return errors.New("remote and local are required\n")
 	}
@@ -137,7 +137,7 @@ func mountSshfs(_ context.Context, key, remote, local string) error {
 	return nil
 }
 
-func unmountSshfs(_ context.Context, local string) error {
+func UnmountSshfs(_ context.Context, local string) error {
 	if local == "" {
 		return errors.New("local is required\n")
 	}
@@ -155,7 +155,7 @@ func unmountSshfs(_ context.Context, local string) error {
 	return nil
 }
 
-func mountOverlay(_ context.Context, repo, mount string) error {
+func MountOverlay(_ context.Context, repo, mount string) error {
 	if repo == "" || mount == "" {
 		return errors.New("repo and mount are required\n")
 	}
@@ -187,7 +187,7 @@ func mountOverlay(_ context.Context, repo, mount string) error {
 	return nil
 }
 
-func unmountOverlay(_ context.Context, repo, unmount string) error {
+func UnmountOverlay(_ context.Context, repo, unmount string) error {
 	if repo == "" || unmount == "" {
 		return errors.New("repo and unmount are required\n")
 	}
