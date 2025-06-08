@@ -113,9 +113,13 @@ func mountSshfs(_ context.Context, remote, local string) error {
 		return errors.New("remote and local are required\n")
 	}
 
+	if err := os.MkdirAll(local, directoryPerm); err != nil {
+		return errors.Wrap(err, "failed to make directory\n")
+	}
+
 	cmd := exec.Command("sshfs",
 		remote,
-		path.Dir(path.Clean(local)),
+		path.Clean(local),
 		"-o", "allow_other",
 		"-o", "default_permissions",
 		"-o", "follow_symlinks",
@@ -139,7 +143,7 @@ func unmountSshfs(_ context.Context, local string) error {
 		_ = os.RemoveAll(path)
 	}(local)
 
-	cmd := exec.Command("fusermount", "-u", path.Dir(path.Clean(local)))
+	cmd := exec.Command("fusermount", "-u", path.Clean(local))
 
 	if err := cmd.Run(); err != nil {
 		return errors.Wrap(err, "failed to unmount sshfs\n")
