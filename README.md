@@ -19,6 +19,15 @@ git with copy-on-write
 
 
 
+## Install
+
+```bash
+sudo apt update
+sudo apt install -y sshfs
+```
+
+
+
 ## Usage
 
 ```
