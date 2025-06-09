@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -64,11 +66,11 @@ func run(ctx context.Context) error {
 	remoteRepo, localRepo := mount.ParsePath(ctx, repositoryPath)
 
 	if unmountPath != "" {
-		if err := mount.UnmountOverlay(ctx, localRepo, unmountPath); err != nil {
+		if err := mount.UnmountOverlay(ctx, expandTilde(localRepo), expandTilde(unmountPath)); err != nil {
 			return errors.Wrap(err, "failed to unmount overlay\n")
 		}
 		if remoteRepo != "" {
-			if err := mount.UnmountSshfs(ctx, localRepo); err != nil {
+			if err := mount.UnmountSshfs(ctx, expandTilde(localRepo)); err != nil {
 				return errors.Wrap(err, "failed to unmount sshfs\n")
 			}
 		}
@@ -76,14 +78,27 @@ func run(ctx context.Context) error {
 	}
 
 	if remoteRepo != "" {
-		if err := mount.MountSshfs(ctx, sshkeyFile, remoteRepo, localRepo); err != nil {
+		if err := mount.MountSshfs(ctx, sshkeyFile, remoteRepo, expandTilde(localRepo)); err != nil {
 			return errors.Wrap(err, "failed to mount sshfs\n")
 		}
 	}
 
-	if err := mount.MountOverlay(ctx, localRepo, mountPath); err != nil {
+	if err := mount.MountOverlay(ctx, expandTilde(localRepo), expandTilde(mountPath)); err != nil {
 		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
 	return nil
+}
+
+func expandTilde(name string) string {
+	if !strings.HasPrefix(name, "~") {
+		return name
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	return filepath.Join(homeDir, name[1:])
 }
