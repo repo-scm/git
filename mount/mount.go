@@ -41,13 +41,18 @@ func MountSshfs(_ context.Context, key, remote, local string) error {
 		return errors.Wrap(err, "failed to make directory\n")
 	}
 
+	config := "StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null,port=22"
+	if key != "" {
+		config = fmt.Sprintf("%s,IdentityFile=%s", config, path.Clean(key))
+	}
+
 	cmd := exec.Command("sshfs",
 		remote,
 		path.Clean(local),
 		"-o", "allow_other",
 		"-o", "default_permissions",
 		"-o", "follow_symlinks",
-		"-o", fmt.Sprintf("IdentityFile=%s,StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null,port=22", path.Clean(key)),
+		"-o", config,
 	)
 
 	if err := cmd.Run(); err != nil {
