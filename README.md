@@ -67,10 +67,6 @@ git push origin main
 sudo ./git --unmount /mnt/overlay/repo --repository /path/to/repo
 ```
 
-#### Screenshot
-
-![overlay](overlay.png)
-
 ### 2. SSHFS and Overlay
 
 #### Config
@@ -113,10 +109,6 @@ git push origin main
 ```bash
 sudo ./git --unmount /mnt/overlay/repo --repository /local/repo
 ```
-
-#### Screenshot
-
-![sshfs-overlay](sshfs-overlay.png)
 
 
 
