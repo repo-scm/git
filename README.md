@@ -15,12 +15,6 @@ git with copy-on-write
 
 ## Prerequisites
 
-- Go >= 1.24.0
-
-
-
-## Install
-
 ```bash
 sudo apt update
 sudo apt install -y sshfs
