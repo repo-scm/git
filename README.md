@@ -32,7 +32,6 @@ Flags:
   -h, --help                help for git
   -m, --mount string        mount path
   -r, --repository string   repository path (user@host:/remote/repo:/local/repo)
-  -s, --sshkey string       sshkey file (/path/to/id_rsa)
   -u, --unmount string      unmount path
   -v, --version             version for git
 ```
@@ -78,29 +77,14 @@ sudo ./git --unmount /mnt/overlay/repo --repository /path/to/repo
 
 ### 2. Overlay and SSHFS
 
-#### Config (optional)
-
-```bash
-cat $HOME/.ssh/config
-```
-
-```
-Host *
-    HostName <host>
-    User <user>
-    Port 22
-    IdentityFile ~/.ssh/id_rsa
-```
-
 #### Mount
 
 ```bash
-sudo ./git --mount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo --sshkey /path/to/id_rsa
+sudo ./git --mount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo
 
 sudo chown -R $USER:$USER /mnt/overlay/repo
 sudo chown -R $USER:$USER /mnt/overlay/cow-repo
 ```
-> Notes: `--sshkey` is optional
 
 #### Test
 

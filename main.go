@@ -24,7 +24,6 @@ var (
 	mountPath      string
 	unmountPath    string
 	repositoryPath string
-	sshkeyFile     string
 )
 
 var rootCmd = &cobra.Command{
@@ -47,7 +46,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&mountPath, "mount", "m", "", "mount path")
 	rootCmd.PersistentFlags().StringVarP(&unmountPath, "unmount", "u", "", "unmount path")
 	rootCmd.PersistentFlags().StringVarP(&repositoryPath, "repository", "r", "", "repository path (user@host:/remote/repo:/local/repo)")
-	rootCmd.PersistentFlags().StringVarP(&sshkeyFile, "sshkey", "s", "", "sshkey file (/path/to/id_rsa)")
 
 	rootCmd.MarkFlagsOneRequired("mount", "unmount")
 	rootCmd.MarkFlagsMutuallyExclusive("mount", "unmount")
@@ -78,7 +76,7 @@ func run(ctx context.Context) error {
 	}
 
 	if remoteRepo != "" {
-		if err := mount.MountSshfs(ctx, sshkeyFile, remoteRepo, expandTilde(localRepo)); err != nil {
+		if err := mount.MountSshfs(ctx, remoteRepo, expandTilde(localRepo)); err != nil {
 			return errors.Wrap(err, "failed to mount sshfs\n")
 		}
 	}

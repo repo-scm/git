@@ -32,7 +32,7 @@ func ParsePath(_ context.Context, name string) (remote, local string) {
 	return "", name
 }
 
-func MountSshfs(_ context.Context, key, remote, local string) error {
+func MountSshfs(_ context.Context, remote, local string) error {
 	if remote == "" || local == "" {
 		return errors.New("remote and local are required\n")
 	}
@@ -42,9 +42,6 @@ func MountSshfs(_ context.Context, key, remote, local string) error {
 	}
 
 	config := "StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null,port=22"
-	if key != "" {
-		config = fmt.Sprintf("%s,IdentityFile=%s", config, path.Clean(key))
-	}
 
 	cmd := exec.Command("sshfs",
 		remote,
