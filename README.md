@@ -49,7 +49,7 @@ Flags:
 sudo ./git --mount /mnt/overlay/repo --repository /path/to/repo
 
 sudo chown -R $USER:$USER /mnt/overlay/repo
-sudo chown -R $USER:$USER /path/to/cow-repo
+sudo chown -R $USER:$USER /mnt/overlay/cow-repo
 ```
 
 #### Test
@@ -92,7 +92,7 @@ Host *
 sudo ./git --mount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo --sshkey /path/to/id_rsa
 
 sudo chown -R $USER:$USER /mnt/overlay/repo
-sudo chown -R $USER:$USER /path/to/cow-repo
+sudo chown -R $USER:$USER /mnt/overlay/cow-repo
 ```
 
 #### Test
