@@ -32,7 +32,7 @@ func ParsePath(_ context.Context, name string) (remote, local string) {
 	return "", name
 }
 
-func MountSshfs(_ context.Context, remote, local string) error {
+func MountSshfs(_ context.Context, remote, local string, port int) error {
 	if remote == "" || local == "" {
 		return errors.New("remote and local are required\n")
 	}
@@ -41,15 +41,13 @@ func MountSshfs(_ context.Context, remote, local string) error {
 		return errors.Wrap(err, "failed to make directory\n")
 	}
 
-	config := "StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null,port=22"
-
 	cmd := exec.Command("sshfs",
 		remote,
 		path.Clean(local),
-		"-o", "allow_other",
-		"-o", "default_permissions",
-		"-o", "follow_symlinks",
-		"-o", config,
+		"-o", "allow_other,default_permissions,follow_symlinks",
+		"-o", "cache=yes,kernel_cache,compression=no,cache_timeout=115200",
+		"-o", "Cipher=aes128-ctr,StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null",
+		"-o", fmt.Sprintf("port=%d", port),
 	)
 
 	if err := cmd.Run(); err != nil {

@@ -31,6 +31,7 @@ Usage:
 Flags:
   -h, --help                help for git
   -m, --mount string        mount path
+  -p, --port int            sshfs port (default 22)
   -r, --repository string   repository path (user@host:/remote/repo:/local/repo)
   -u, --unmount string      unmount path
   -v, --version             version for git
