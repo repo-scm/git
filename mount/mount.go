@@ -87,12 +87,10 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 		return errors.New("repo and mount are required\n")
 	}
 
-	repoDir := path.Dir(path.Clean(repo))
-
 	mountDir := path.Dir(path.Clean(mount))
 	mountName := path.Base(path.Clean(mount))
 
-	upperPath := path.Join(repoDir, "cow-"+mountName)
+	upperPath := path.Join(mountDir, "cow-"+mountName)
 	workPath := path.Join(mountDir, "work-"+mountName)
 
 	dirs := []string{mount, upperPath, workPath}
@@ -122,8 +120,7 @@ func UnmountOverlay(_ context.Context, repo, unmount string) error {
 	unmountDir := path.Dir(path.Clean(unmount))
 	unmountName := path.Base(path.Clean(unmount))
 
-	repoPath := path.Dir(path.Clean(repo))
-	upperPath := path.Join(repoPath, "cow-"+unmountName)
+	upperPath := path.Join(unmountDir, "cow-"+unmountName)
 	workPath := path.Join(unmountDir, "work-"+unmountName)
 
 	defer func(unmount, workPath, upperPath string) {
