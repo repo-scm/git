@@ -76,7 +76,7 @@ sudo ./git --unmount /mnt/overlay/repo --repository /path/to/repo
 > sudo umount /mnt/overlay/repo
 > ```
 
-### 2. SSHFS and Overlay
+### 2. Overlay and SSHFS
 
 #### Config
 
@@ -116,7 +116,7 @@ git push origin main
 #### Unmount
 
 ```bash
-sudo ./git --unmount /mnt/overlay/repo --repository /local/repo
+sudo ./git --unmount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo
 ```
 
 > Tips: Unmount overlay and sshfs manually
