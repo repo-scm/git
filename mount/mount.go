@@ -59,7 +59,7 @@ func MountSshfs(_ context.Context, key, remote, local string) error {
 		return errors.Wrap(err, "failed to mount sshfs\n")
 	}
 
-	fmt.Printf("\nSuccessfully mounted sshfs at %s\n", path.Clean(local))
+	fmt.Printf("Successfully mounted sshfs at %s\n", path.Clean(local))
 
 	return nil
 }
@@ -78,6 +78,8 @@ func UnmountSshfs(_ context.Context, local string) error {
 	if err := cmd.Run(); err != nil {
 		return errors.Wrap(err, "failed to unmount sshfs\n")
 	}
+
+	fmt.Printf("Successfully unmounted sshfs\n")
 
 	return nil
 }
@@ -107,7 +109,7 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 		return errors.Wrap(err, "failed to mount overlay\n")
 	}
 
-	fmt.Printf("\nSuccessfully mounted overlay at %s\n", upperPath)
+	fmt.Printf("Successfully mounted overlay at %s\n", mount)
 
 	return nil
 }
@@ -133,7 +135,7 @@ func UnmountOverlay(_ context.Context, repo, unmount string) error {
 		return errors.Wrap(err, "failed to unmount overlay\n")
 	}
 
-	fmt.Printf("\nSuccessfully unmounted overlay\n")
+	fmt.Printf("Successfully unmounted overlay\n")
 
 	return nil
 }
