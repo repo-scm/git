@@ -78,7 +78,7 @@ sudo ./git --unmount /mnt/overlay/repo --repository /path/to/repo
 
 ### 2. Overlay and SSHFS
 
-#### Config
+#### Config (optional)
 
 ```bash
 cat $HOME/.ssh/config
@@ -100,6 +100,7 @@ sudo ./git --mount /mnt/overlay/repo --repository user@host:/remote/repo:/local/
 sudo chown -R $USER:$USER /mnt/overlay/repo
 sudo chown -R $USER:$USER /mnt/overlay/cow-repo
 ```
+> Notes: `--sshkey` is optional
 
 #### Test
 
