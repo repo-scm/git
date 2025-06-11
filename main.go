@@ -6,10 +6,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/repo-scm/git/mount"
@@ -65,13 +66,24 @@ func main() {
 func run(ctx context.Context) error {
 	remoteRepo, localRepo := mount.ParsePath(ctx, repositoryPath)
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		cancel()
+	}()
+
 	if unmountPath != "" {
 		if err := mount.UnmountOverlay(ctx, expandTilde(localRepo), expandTilde(unmountPath)); err != nil {
-			return errors.Wrap(err, "failed to unmount overlay\n")
+			fmt.Print(err.Error())
 		}
 		if remoteRepo != "" {
 			if err := mount.UnmountSshfs(ctx, expandTilde(localRepo)); err != nil {
-				return errors.Wrap(err, "failed to unmount sshfs\n")
+				fmt.Print(err.Error())
 			}
 		}
 		return nil
@@ -79,12 +91,14 @@ func run(ctx context.Context) error {
 
 	if remoteRepo != "" {
 		if err := mount.MountSshfs(ctx, remoteRepo, expandTilde(localRepo), sshfsPort); err != nil {
-			return errors.Wrap(err, "failed to mount sshfs\n")
+			_ = mount.UnmountSshfs(ctx, expandTilde(localRepo))
+			return err
 		}
 	}
 
 	if err := mount.MountOverlay(ctx, expandTilde(localRepo), expandTilde(mountPath)); err != nil {
-		return errors.Wrap(err, "failed to mount overlay\n")
+		_ = mount.UnmountSshfs(ctx, expandTilde(localRepo))
+		return err
 	}
 
 	return nil
