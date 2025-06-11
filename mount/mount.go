@@ -45,7 +45,7 @@ func MountSshfs(_ context.Context, remote, local string, port int) error {
 		remote,
 		path.Clean(local),
 		"-o", "allow_other,default_permissions,follow_symlinks",
-		"-o", "cache=yes,kernel_cache,compression=no,cache_timeout=115200",
+		"-o", "cache=yes,kernel_cache,compression=no,big_writes,cache_timeout=115200",
 		"-o", "Cipher=aes128-ctr,StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null",
 		"-o", fmt.Sprintf("port=%d", port),
 	)

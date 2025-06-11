@@ -79,11 +79,11 @@ func run(ctx context.Context) error {
 
 	if unmountPath != "" {
 		if err := mount.UnmountOverlay(ctx, expandTilde(localRepo), expandTilde(unmountPath)); err != nil {
-			fmt.Print(err.Error())
+			fmt.Println(err.Error())
 		}
 		if remoteRepo != "" {
 			if err := mount.UnmountSshfs(ctx, expandTilde(localRepo)); err != nil {
-				fmt.Print(err.Error())
+				fmt.Println(err.Error())
 			}
 		}
 		return nil
