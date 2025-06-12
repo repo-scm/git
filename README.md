@@ -34,7 +34,7 @@ git create /local/repo [--name string]
 git create user@host:/remote/repo [--name string]
 ```
 
-> Notes: workspace name is set to `<repo_name>-<7_bit_hash>` in default if `--name string` not set.
+> **Notes**: Workspace name is set to `<repo_name>-<7_bit_hash>` in default if `--name string` not set.
 
 ### List git workspaces
 
