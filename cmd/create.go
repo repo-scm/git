@@ -64,8 +64,7 @@ func generateHash(name string) string {
 }
 
 func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error {
-	remoteRepo, localRepo := utils.ParsePath(ctx, repo)
-
+	repoPath := utils.ExpandTilde(repo)
 	sshfsPath := path.Join(utils.ExpandTilde(cfg.Sshfs.Mount), name)
 	overlayPath := path.Join(utils.ExpandTilde(cfg.Overlay.Mount), name)
 
@@ -80,15 +79,13 @@ func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error
 		cancel()
 	}()
 
-	if remoteRepo != "" {
+	user, host, _ := utils.ParsePath(ctx, repoPath)
+
+	if user != "" && host != "" {
 		var mounted bool
 		var err error
-		var options string
-		for _, option := range cfg.Sshfs.Options {
-			options += fmt.Sprintf("-o %s ", option)
-		}
 		for _, port := range cfg.Sshfs.Ports {
-			if err = MountSshfs(ctx, remoteRepo, sshfsPath, strings.TrimSpace(options), port); err == nil {
+			if err = MountSshfs(ctx, repoPath, sshfsPath, strings.Join(cfg.Sshfs.Options, ","), port); err == nil {
 				mounted = true
 				break
 			} else {
@@ -98,9 +95,10 @@ func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error
 		if !mounted {
 			return err
 		}
+		repoPath = sshfsPath
 	}
 
-	if err := MountOverlay(ctx, utils.ExpandTilde(localRepo), overlayPath); err != nil {
+	if err := MountOverlay(ctx, repoPath, overlayPath); err != nil {
 		_ = UnmountSshfs(ctx, sshfsPath)
 		return err
 	}
@@ -120,7 +118,7 @@ func MountSshfs(_ context.Context, repo, mount, options string, port int) error 
 	cmd := exec.Command("sshfs",
 		repo,
 		path.Clean(mount),
-		options,
+		"-o", options,
 		"-o", fmt.Sprintf("port=%d", port),
 	)
 

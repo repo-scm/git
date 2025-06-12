@@ -28,15 +28,16 @@ func ExpandTilde(name string) string {
 	return filepath.Join(homeDir, name[1:])
 }
 
-func ParsePath(_ context.Context, name string) (remote, local string) {
-	// Remote format: user@host:/remote/repo:/local/repo
-	remotePattern := `^([^@]+)@([^:]+):([^:]+):([^:]+)$`
+func ParsePath(_ context.Context, name string) (user, host, dir string) {
+	// Format: user@host:/remote/repo
+	remotePattern := `^([^@]+)@([^:]+):([^:]+)$`
 	remoteRegex := regexp.MustCompile(remotePattern)
 
 	if matches := remoteRegex.FindStringSubmatch(name); matches != nil {
-		_path := strings.Split(name, ":")
-		return _path[0] + ":" + _path[1], _path[2]
+		dir = strings.Split(name, ":")[1]
+		buf := strings.Split(strings.Split(name, ":")[0], "@")
+		return buf[0], buf[1], dir
 	}
 
-	return "", name
+	return "", "", name
 }
