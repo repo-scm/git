@@ -102,7 +102,8 @@ func UnmountSshfs(_ context.Context, mount string) error {
 	cmd := exec.Command("fusermount", "-u", path.Clean(mount))
 
 	if err := cmd.Run(); err != nil {
-		return errors.Wrap(err, "failed to unmount sshfs\n")
+		fmt.Println(err.Error())
+		return nil
 	}
 
 	fmt.Printf("successfully unmounted sshfs\n")

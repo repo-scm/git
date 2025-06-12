@@ -4,8 +4,9 @@ package cmd
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -34,7 +35,7 @@ var createCmd = &cobra.Command{
 		repo := args[0]
 		name := createName
 		if name == "" {
-			name = fmt.Sprintf("%s-%d", path.Base(repo), GenerateHash(repo))
+			name = fmt.Sprintf("%s-%s", path.Base(repo), generateHash(repo))
 		}
 		if err := runCreate(ctx, config, repo, name); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
@@ -50,10 +51,16 @@ func init() {
 	createCmd.PersistentFlags().StringVarP(&createName, "name", "n", "", "workspace name")
 }
 
-func GenerateHash(name string) uint8 {
-	hash := sha256.Sum256([]byte(name))
+func generateHash(name string) string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := make([]byte, 7)
 
-	return hash[0] & 0x7F
+	for i := range result {
+		num, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		result[i] = chars[num.Int64()]
+	}
+
+	return string(result)
 }
 
 func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error {
