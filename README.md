@@ -9,108 +9,77 @@
 
 ## Introduction
 
-git with copy-on-write
+git workspace with copy-on-write
 
 
 
 ## Prerequisites
 
 ```bash
-sudo apt update
-sudo apt install -y sshfs
+apt update
+apt install -y sshfs
 ```
 
 
 
 ## Usage
 
-```
-Usage:
-  git [flags]
-
-Flags:
-  -h, --help                help for git
-  -m, --mount string        mount path
-  -p, --port int            sshfs port (default 22)
-  -r, --repository string   repository path (user@host:/remote/repo:/local/repo)
-  -u, --unmount string      unmount path
-  -v, --version             version for git
-```
-
-
-
-## Example
-
-### 1. Overlay
-
-#### Mount
+### Create git workspace
 
 ```bash
-sudo ./git --mount /mnt/overlay/repo --repository /path/to/repo
+# Create workspace for local repo
+git create /local/repo [--name string]
 
-sudo chown -R $USER:$USER /mnt/overlay/repo
-sudo chown -R $USER:$USER /mnt/overlay/cow-repo
+# Create workspace for remote repo
+git create user@host:/remote/repo [--name string]
 ```
 
-#### Test
+> Notes: workspace name is set to `<repo_name>-<7_bit_hash>` in default if `--name string` not set.
+
+### List git workspaces
 
 ```bash
-cd /mnt/overlay/repo
-
-echo "new file" | tee newfile.txt
-echo "modified" | tee README.md
-
-git commit -m "repo changes"
-git push origin main
+git list workspaces
 ```
 
-#### Unmount
+### Run git workspace
 
 ```bash
-sudo ./git --unmount /mnt/overlay/repo --repository /path/to/repo
+git run <workspace_name>
 ```
 
-> Tips: Unmount overlay manually
->
-> ```bash
-> sudo umount /mnt/overlay/repo
-> ```
-
-### 2. Overlay and SSHFS
-
-#### Mount
+### Delete git workspace
 
 ```bash
-sudo ./git --mount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo
-
-sudo chown -R $USER:$USER /mnt/overlay/repo
-sudo chown -R $USER:$USER /mnt/overlay/cow-repo
+git delete <workspace_name>
 ```
 
-#### Test
 
-```bash
-cd /mnt/overlay/repo
 
-echo "new file" | tee newfile.txt
-echo "modified" | tee README.md
+## Settings
 
-git commit -m "repo changes"
-git push origin main
+[git](https://github.com/repo-scm/git) parameters can be set in the directory `$HOME/.repo-scm/git.yaml`.
+
+An example of settings can be found in [git.yaml](https://github.com/repo-scm/git/blob/main/config/git.yaml).
+
+```yaml
+overlay:
+  mount: "/mnt/repo-scm/git/overlay"
+sshfs:
+  mount: "/mnt/repo-scm/git/sshfs"
+  options:
+    - "allow_other,default_permissions,follow_symlinks"
+    - "cache=yes,kernel_cache,compression=no,big_writes,cache_timeout=115200"
+    - "Cipher=aes128-ctr,StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null"
+  ports:
+    - 22
 ```
 
-#### Unmount
 
-```bash
-sudo ./git --unmount /mnt/overlay/repo --repository user@host:/remote/repo:/local/repo
-```
 
-> Tips: Unmount overlay and sshfs manually
->
-> ```bash
-> sudo umount /mnt/overlay/repo
-> sudo fusermount -u /local/repo
-> ```
+## Playground
+
+TODO
 
 
 
