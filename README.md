@@ -25,21 +25,20 @@ Legend of annotations:
 |  ✋  | blocked task                                      |
 |  🔵  | more investigation required to remove uncertainty |
 |  ✅  | completed                                         |
-|  ⬜  | uncompleted                                       |
 
 ### Commands
 
 ✅ Add commands of create, run, list and delete for git workspace [repo-scm/git#3](https://github.com/repo-scm/git/issues/3)  
-⬜🏃 Add commands of lint, build and exec for git workspace [repo-scm/git#4](https://github.com/repo-scm/git/issues/4)  
-⬜🏃 Add commands of chat and agent for git workspace [repo-scm/git#5](https://github.com/repo-scm/git/issues/5)
+🏃 Add commands of lint, build and exec for git workspace [repo-scm/git#4](https://github.com/repo-scm/git/issues/4)  
+🏃 Add commands of chat and agent for git workspace [repo-scm/git#5](https://github.com/repo-scm/git/issues/5)
 
 ### Test
 
-⬜🔵 Add playground for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)  
+🔵 Add playground for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)  
 
 ### Permission
 
-⬜🔵 Add user to repo-scm group for sudo-less git commands [repo-scm/git#7](https://github.com/repo-scm/git/issues/7)  
+🔵 Add user to repo-scm group for sudo-less git commands [repo-scm/git#7](https://github.com/repo-scm/git/issues/7)  
 
 
 
