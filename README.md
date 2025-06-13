@@ -32,13 +32,13 @@ Legend of annotations:
 🏃 Add commands of lint, build and exec for git workspace [repo-scm/git#4](https://github.com/repo-scm/git/issues/4)  
 🏃 Add commands of chat and agent for git workspace [repo-scm/git#5](https://github.com/repo-scm/git/issues/5)
 
-### Test
-
-🔵 Add playground for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)  
-
 ### Permission
 
 🔵 Add user to repo-scm group for sudo-less git commands [repo-scm/git#7](https://github.com/repo-scm/git/issues/7)  
+
+### Test
+
+🔵 Add playground for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)
 
 
 
@@ -53,7 +53,9 @@ apt install -y sshfs
 
 ## Usage
 
-### Create git workspace
+### Commands
+
+#### 1. Create git workspace
 
 ```bash
 # Create workspace for local repo
@@ -65,23 +67,31 @@ git create user@host:/remote/repo [--name string]
 
 > **Notes**: Workspace name is set to `<repo_name>-<7_bit_hash>` in default if `--name string` not set.
 
-### List git workspaces
+#### 2. List git workspaces
 
 ```bash
 git list workspaces
 ```
 
-### Run git workspace
+#### 3. Run git workspace
 
 ```bash
 git run <workspace_name>
 ```
 
-### Delete git workspace
+#### 4. Delete git workspace
 
 ```bash
 git delete <workspace_name>
 ```
+
+### Permission
+
+*TBD*
+
+### Test
+
+*TBD*
 
 
 
@@ -103,12 +113,6 @@ sshfs:
   ports:
     - 22
 ```
-
-
-
-## Playground
-
-TODO
 
 
 
