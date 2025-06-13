@@ -6,10 +6,31 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
+	"path"
+	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/repo-scm/git/config"
+	"github.com/repo-scm/git/utils"
+)
+
+const (
+	Welcome = `
+🚀 Welcome to the Git Workspace!
+📁 Current directory: %s
+💡 Custom PS1 is active
+👋 Type exit when done
+`
+
+	Bye = `
+👋 Thanks for using Git Workspace!
+🏁 Done!
+`
+
+	PS1 = `\[\033[0;32m\]git@repo-scm ➜ \[\033[01;34m\]%s \[\033[00m\]\$ `
 )
 
 var runCmd = &cobra.Command{
@@ -32,6 +53,68 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 }
 
-func runRun(ctx context.Context, cfg *config.Config, name string) error {
+func runRun(_ context.Context, cfg *config.Config, name string) error {
+	content := fmt.Sprintf(`export PS1="%s"`, fmt.Sprintf(PS1, name))
+	if err := appendContentToBashrc(content); err != nil {
+		return err
+	}
+
+	defer func(content string) {
+		_ = removeContentFromBashrc(content)
+	}(content)
+
+	mount := path.Join(utils.ExpandTilde(cfg.Overlay.Mount), name)
+	script := fmt.Sprintf(`
+echo '%s'
+exec bash
+`, fmt.Sprintf(Welcome, mount))
+
+	cmd := exec.Command("/bin/bash", "-c", script)
+	cmd.Dir = mount
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	fmt.Print(Bye)
+
+	return nil
+}
+
+func appendContentToBashrc(content string) error {
+	file, err := os.OpenFile(os.ExpandEnv("$HOME/.bashrc"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, utils.PermFile)
+	if err != nil {
+		return errors.Wrap(err, "failed to open bashrc\n")
+	}
+
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+
+	if _, err := file.WriteString(content); err != nil {
+		return errors.Wrap(err, "failed to write bashrc\n")
+	}
+
+	return nil
+}
+
+func removeContentFromBashrc(content string) error {
+	file := os.ExpandEnv("$HOME/.bashrc")
+
+	old, err := os.ReadFile(file)
+	if err != nil {
+		return errors.Wrap(err, "failed to read bashrc\n")
+	}
+
+	_new := strings.ReplaceAll(string(old), content, "")
+	if string(old) != _new {
+		if err = os.WriteFile(file, []byte(_new), utils.PermFile); err != nil {
+			return errors.Wrap(err, "failed to write bashrc\n")
+		}
+	}
+
 	return nil
 }
