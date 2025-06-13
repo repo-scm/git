@@ -12,7 +12,7 @@ builds:
     binary: git
     flags:
       - -trimpath
-    ldflags: -s -w -X main.BuildTime={{.Date}} -X main.CommitID={{.ShortCommit}}
+    ldflags: -s -w -X github.com/repo-scm/git/cmd.BuildTime={{.Date}} -X github.com/repo-scm/git/cmd.CommitID={{.ShortCommit}}
 
 changelog:
   sort: asc
