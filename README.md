@@ -42,16 +42,14 @@ Legend of annotations:
 
 
 
-## Prerequisites
+## Usage
+
+### Prerequisites
 
 ```bash
 apt update
 apt install -y sshfs
 ```
-
-
-
-## Usage
 
 ### Commands
 
