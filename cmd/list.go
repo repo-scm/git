@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	allWorkspaces bool
-	verboseMode   bool
+	listAll     bool
+	verboseMode bool
 )
 
 var listCmd = &cobra.Command{
@@ -30,7 +30,7 @@ var listCmd = &cobra.Command{
 		var name string
 		ctx := context.Background()
 		config := GetConfig()
-		if len(args) == 0 && !allWorkspaces {
+		if len(args) == 0 && !listAll {
 			_, _ = fmt.Fprintln(os.Stderr, "Please specify a workspace name")
 			os.Exit(1)
 		}
@@ -54,7 +54,7 @@ type Workspace struct {
 func init() {
 	rootCmd.AddCommand(listCmd)
 
-	listCmd.PersistentFlags().BoolVarP(&allWorkspaces, "all", "a", false, "list all workspaces")
+	listCmd.PersistentFlags().BoolVarP(&listAll, "all", "a", false, "list all workspaces")
 	listCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "list in verbose mode")
 }
 

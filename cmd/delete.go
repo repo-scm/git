@@ -25,11 +25,18 @@ var (
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete workspace for git repo",
-	Args:  cobra.RangeArgs(1, 1),
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
+		var name string
 		ctx := context.Background()
 		config := GetConfig()
-		name := args[0]
+		if len(args) == 0 && !deleteAll {
+			_, _ = fmt.Fprintln(os.Stderr, "Please specify a workspace name")
+			os.Exit(1)
+		}
+		if len(args) == 1 {
+			name = args[0]
+		}
 		if err := runDelete(ctx, config, name); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
@@ -41,13 +48,10 @@ var deleteCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(deleteCmd)
 
-	deleteCmd.PersistentFlags().BoolVarP(&deleteAll, "all-workspaces", "a", false, "delete all workspaces")
+	deleteCmd.PersistentFlags().BoolVarP(&deleteAll, "all", "a", false, "delete all workspaces")
 }
 
 func runDelete(ctx context.Context, cfg *config.Config, name string) error {
-	sshfsPath := path.Join(utils.ExpandTilde(cfg.Sshfs.Mount), name)
-	overlayPath := path.Join(utils.ExpandTilde(cfg.Overlay.Mount), name)
-
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -59,12 +63,32 @@ func runDelete(ctx context.Context, cfg *config.Config, name string) error {
 		cancel()
 	}()
 
-	if err := UnmountOverlay(ctx, overlayPath); err != nil {
-		fmt.Println(err.Error())
+	if name != "" {
+		sshfsPath := path.Join(utils.ExpandTilde(cfg.Sshfs.Mount), name)
+		overlayPath := path.Join(utils.ExpandTilde(cfg.Overlay.Mount), name)
+		if err := UnmountOverlay(ctx, overlayPath); err != nil {
+			fmt.Println(err.Error())
+		}
+		if err := UnmountSshfs(ctx, sshfsPath); err != nil {
+			fmt.Println(err.Error())
+		}
+		return nil
 	}
 
-	if err := UnmountSshfs(ctx, sshfsPath); err != nil {
-		fmt.Println(err.Error())
+	workspaces, err := QueryWorkspaces(ctx, cfg, false)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range workspaces {
+		sshfsPath := path.Join(utils.ExpandTilde(cfg.Sshfs.Mount), item.Name)
+		overlayPath := path.Join(utils.ExpandTilde(cfg.Overlay.Mount), item.Name)
+		if err := UnmountOverlay(ctx, overlayPath); err != nil {
+			fmt.Println(err.Error())
+		}
+		if err := UnmountSshfs(ctx, sshfsPath); err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 
 	return nil

@@ -94,7 +94,7 @@ git run <workspace_name>
 git delete <workspace_name>
 
 # Delete all workspaces
-git delete --all-workspaces
+git delete --all
 ```
 
 ### Permission
