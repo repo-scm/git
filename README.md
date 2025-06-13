@@ -80,7 +80,11 @@ git run <workspace_name>
 #### 4. Delete git workspace
 
 ```bash
+# Delete a workspace
 git delete <workspace_name>
+
+# Delete all workspaces
+git delete --all-workspaces
 ```
 
 ### Permission
