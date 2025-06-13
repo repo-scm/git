@@ -11,6 +11,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+const configData = `overlay:
+  mount: "/mnt/repo-scm/git/overlay"
+sshfs:
+  mount: "/mnt/repo-scm/git/sshfs"
+  options:
+    - "allow_other,default_permissions,follow_symlinks"
+    - "cache=yes,kernel_cache,compression=no,big_writes,cache_timeout=115200"
+    - "Cipher=aes128-ctr,StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null"
+  ports:
+    - 22
+`
+
 type Config struct {
 	Overlay Overlay `yaml:"overlay"`
 	Sshfs   Sshfs   `yaml:"sshfs"`
@@ -25,18 +37,6 @@ type Sshfs struct {
 	Options []string `yaml:"options"`
 	Ports   []int    `yaml:"ports"`
 }
-
-const configData = `overlay:
-  mount: "/mnt/repo-scm/git/overlay"
-sshfs:
-  mount: "/mnt/repo-scm/git/sshfs"
-  options:
-    - "allow_other,default_permissions,follow_symlinks"
-    - "cache=yes,kernel_cache,compression=no,big_writes,cache_timeout=115200"
-    - "Cipher=aes128-ctr,StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null"
-  ports:
-    - 22
-`
 
 func LoadConfig(name string) (*Config, error) {
 	var config Config

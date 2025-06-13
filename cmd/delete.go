@@ -18,6 +18,10 @@ import (
 	"github.com/repo-scm/git/utils"
 )
 
+var (
+	deleteAll bool
+)
+
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete workspace for git repo",
@@ -36,6 +40,8 @@ var deleteCmd = &cobra.Command{
 // nolint:gochecknoinits
 func init() {
 	rootCmd.AddCommand(deleteCmd)
+
+	deleteCmd.PersistentFlags().BoolVarP(&deleteAll, "all-workspaces", "a", false, "delete all workspaces")
 }
 
 func runDelete(ctx context.Context, cfg *config.Config, name string) error {

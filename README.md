@@ -28,7 +28,7 @@ Legend of annotations:
 
 ### Commands
 
-✅ Add commands of create, run, list and delete for git workspace [repo-scm/git#3](https://github.com/repo-scm/git/issues/3)  
+✅ Add commands of create, list, run and delete for git workspace [repo-scm/git#3](https://github.com/repo-scm/git/issues/3)  
 🏃 Add commands of lint, build and exec for git workspace [repo-scm/git#4](https://github.com/repo-scm/git/issues/4)  
 🏃 Add commands of chat and agent for git workspace [repo-scm/git#5](https://github.com/repo-scm/git/issues/5)
 
@@ -68,7 +68,17 @@ git create user@host:/remote/repo [--name string]
 #### 2. List git workspaces
 
 ```bash
-git list workspaces
+# List a workspace
+git list <workspace_name>
+
+# List a workspace in verbose mode
+git list <workspace_name> --verbose
+
+# List all workspaces
+git list --all
+
+# List all workspaces in verbose mode
+git list --all --verbose
 ```
 
 #### 3. Run git workspace

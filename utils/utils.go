@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 const (
@@ -40,4 +42,14 @@ func ParsePath(_ context.Context, name string) (user, host, dir string) {
 	}
 
 	return "", "", name
+}
+
+func WriteTable(_ context.Context, data [][]string) error {
+	table := tablewriter.NewWriter(os.Stdout)
+
+	table.Header(data[0])
+	_ = table.Bulk(data[1:])
+	_ = table.Render()
+
+	return nil
 }
