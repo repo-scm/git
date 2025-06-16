@@ -32,13 +32,13 @@ Legend of annotations:
 🏃 Add commands of lint, build and exec for git workspace [repo-scm/git#4](https://github.com/repo-scm/git/issues/4)  
 🏃 Add commands of chat and agent for git workspace [repo-scm/git#5](https://github.com/repo-scm/git/issues/5)
 
-### Permission
-
-🔵 Add user to repo-scm group for sudo-less git commands [repo-scm/git#7](https://github.com/repo-scm/git/issues/7)  
-
 ### Test
 
 🔵 Add playground for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)
+
+### Namespace
+
+🔵 Create namespace in sudo-less mode [repo-scm/git#7](https://github.com/repo-scm/git/issues/7)
 
 
 
@@ -48,7 +48,7 @@ Legend of annotations:
 
 ```bash
 apt update
-apt install -y sshfs
+apt install -y fuse-overlayfs sshfs util-linux
 ```
 
 ### Commands
@@ -97,14 +97,6 @@ git delete <workspace_name>
 git delete --all
 ```
 
-### Permission
-
-*TBD*
-
-### Test
-
-*TBD*
-
 
 
 ## Settings
@@ -125,6 +117,12 @@ sshfs:
   ports:
     - 22
 ```
+
+
+
+## Playground
+
+*TBD*
 
 
 
