@@ -107,7 +107,7 @@ git chat <workspace_name> [prompt] [--model string]
 git chat <workspace_name> [prompt] [--model string] --quiet
 ```
 
-> **Notes**: Model ID is set to `anthropic/claude-opus-4-20250514` in default if `--model string` not set.
+> **Notes**: Model name is set to `litellm/anthropic/claude-opus-4-20250514` in default if `--model string` not set.
 
 #### 6. MCP for git workspace
 
@@ -125,7 +125,7 @@ An example of settings can be found in [git.yaml](https://github.com/repo-scm/gi
 
 ```yaml
 models:
-  - provider_name: "LiteLLM"
+  - provider_name: "litellm"
     api_base: "http://localhost:4000"
     api_key: "noop"
     model_id: "anthropic/claude-opus-4-20250514"
