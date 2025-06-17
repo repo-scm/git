@@ -34,7 +34,7 @@ Legend of annotations:
 
 ### Test
 
-🏃 Add playground for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)
+🏃 Add sandbox for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)
 
 ### Namespace
 
@@ -120,7 +120,7 @@ sshfs:
 
 
 
-## Playground
+## Sandbox
 
 *TBD*
 
@@ -134,6 +134,7 @@ Project License can be found [here](LICENSE).
 
 ## Reference
 
+- [openai-codex](https://github.com/openai/codex)
 - [cloud-native-build](https://docs.cnb.cool/zh/)
 - [git-clone-yyds](https://cloud.tencent.com/developer/article/2456809)
 - [git-clone-yyds](https://cnb.cool/cnb/cool/git-clone-yyds)
