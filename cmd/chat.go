@@ -45,7 +45,7 @@ var chatCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(chatCmd)
 
-	chatCmd.PersistentFlags().StringVarP(&modelID, "model", "m", "litellm/anthropic/claude-opus-4-20250514", "model id")
+	chatCmd.PersistentFlags().StringVarP(&modelID, "model", "m", "litellm/anthropic/claude-opus-4-20250514", "model name")
 	chatCmd.PersistentFlags().BoolVarP(&quietMode, "quiet", "q", false, "quiet mode")
 
 	chatCmd.SetUsageFunc(func(cmd *cobra.Command) error {
@@ -72,8 +72,8 @@ func init() {
 			})
 		}
 		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\nExample:\n")
-		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git chat your_workspace your_prompt --model anthropic/claude-opus-4-20250514\n")
-		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git chat your_workspace your_prompt --model anthropic/claude-opus-4-20250514 --quiet\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git chat your_workspace your_prompt --model provider_name/model_id\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git chat your_workspace your_prompt --model provider_name/model_id --quiet\n")
 		return nil
 	})
 }
