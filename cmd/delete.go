@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/repo-scm/git/config"
 	"github.com/repo-scm/git/utils"
@@ -49,6 +50,35 @@ func init() {
 	rootCmd.AddCommand(deleteCmd)
 
 	deleteCmd.PersistentFlags().BoolVarP(&deleteAll, "all", "a", false, "delete all workspaces")
+
+	deleteCmd.SetUsageFunc(func(cmd *cobra.Command) error {
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "Usage:\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  %s %s [workspace_name] [flags]\n\n", cmd.Root().Name(), cmd.Name())
+		if cmd.HasLocalFlags() {
+			_, _ = fmt.Fprintf(cmd.OutOrStderr(), "Flags:\n")
+			cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
+				_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  -%s, --%s   %s", flag.Shorthand, flag.Name, flag.Usage)
+				if flag.Name != "help" && flag.DefValue != "" {
+					_, _ = fmt.Fprintf(cmd.OutOrStderr(), " (default %s)", flag.DefValue)
+				}
+				_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\n")
+			})
+		}
+		if cmd.HasInheritedFlags() {
+			_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\nGlobal Flags:\n")
+			cmd.InheritedFlags().VisitAll(func(flag *pflag.Flag) {
+				_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  -%s, --%s   %s", flag.Shorthand, flag.Name, flag.Usage)
+				if flag.DefValue != "" {
+					_, _ = fmt.Fprintf(cmd.OutOrStderr(), " (default %s)", flag.DefValue)
+				}
+				_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\n")
+			})
+		}
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\nExample:\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git delete your_workspace\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git delete --all\n")
+		return nil
+	})
 }
 
 func runDelete(ctx context.Context, cfg *config.Config, name string) error {

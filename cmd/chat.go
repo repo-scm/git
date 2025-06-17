@@ -68,6 +68,9 @@ func init() {
 				_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\n")
 			})
 		}
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\nExample:\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git chat your_workspace \"your_prompt\" --model \"anthropic/claude-opus-4-20250514\"\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git chat your_workspace \"your_prompt\" --model \"anthropic/claude-opus-4-20250514\" --quiet\n")
 		return nil
 	})
 }
