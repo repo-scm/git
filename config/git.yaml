@@ -1,3 +1,8 @@
+models:
+  - provider_name: "LiteLLM"
+    api_base: "http://localhost:4000"
+    api_key: "noop"
+    model_id: "anthropic/claude-opus-4-20250514"
 overlay:
   mount: "/mnt/repo-scm/git/overlay"
 sshfs:

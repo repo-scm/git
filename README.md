@@ -29,7 +29,7 @@ Legend of annotations:
 ### Commands
 
 ✅ Add commands of create, list, run and delete for git workspace [repo-scm/git#3](https://github.com/repo-scm/git/issues/3)  
-🏃 Add commands of chat and mcp for git workspace [repo-scm/git#5](https://github.com/repo-scm/git/issues/5)  
+✅ Add commands of chat and mcp for git workspace [repo-scm/git#5](https://github.com/repo-scm/git/issues/5)  
 🏃 Add commands of lint, build and exec for git workspace [repo-scm/git#4](https://github.com/repo-scm/git/issues/4)
 
 ### Test
@@ -97,6 +97,24 @@ git delete <workspace_name>
 git delete --all
 ```
 
+#### 5. Chat with git workspace
+
+```bash
+# Chat with workspace in interactive mode
+git chat <workspace_name> [prompt] [--model string]
+
+# Chat with workspace in quiet mode
+git chat <workspace_name> [prompt] [--model string] --quiet
+```
+
+> **Notes**: Model ID is set to `anthropic/claude-opus-4-20250514` in default if `--model string` not set.
+
+#### 6. MCP for git workspace
+
+```bash
+git mcp <workspace_name>
+```
+
 
 
 ## Settings
@@ -106,6 +124,11 @@ git delete --all
 An example of settings can be found in [git.yaml](https://github.com/repo-scm/git/blob/main/config/git.yaml).
 
 ```yaml
+models:
+  - provider_name: "LiteLLM"
+    api_base: "http://localhost:4000"
+    api_key: "noop"
+    model_id: "anthropic/claude-opus-4-20250514"
 overlay:
   mount: "/mnt/repo-scm/git/overlay"
 sshfs:

@@ -3,6 +3,7 @@
 package config
 
 import (
+	_ "embed"
 	"os"
 	"path"
 
@@ -11,21 +12,20 @@ import (
 	"github.com/spf13/viper"
 )
 
-const configData = `overlay:
-  mount: "/mnt/repo-scm/git/overlay"
-sshfs:
-  mount: "/mnt/repo-scm/git/sshfs"
-  options:
-    - "allow_other,default_permissions,follow_symlinks"
-    - "cache=yes,kernel_cache,compression=no,big_writes,cache_timeout=115200"
-    - "Cipher=aes128-ctr,StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null"
-  ports:
-    - 22
-`
+//go:embed git.yaml
+var configData string
 
 type Config struct {
+	Models  []Model `yaml:"models"`
 	Overlay Overlay `yaml:"overlay"`
 	Sshfs   Sshfs   `yaml:"sshfs"`
+}
+
+type Model struct {
+	ProviderName string `yaml:"provider_name"`
+	ApiBase      string `yaml:"api_base"`
+	ApiKey       string `yaml:"api_key"`
+	ModelId      string `yaml:"model_id"`
 }
 
 type Overlay struct {
