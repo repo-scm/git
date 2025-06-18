@@ -19,19 +19,19 @@ import (
 )
 
 const (
-	Welcome = `
+	runWelcome = `
 🚀 Welcome to the Git Workspace!
 📁 Current directory: %s
 💡 Custom PS1 is active
 👋 Type exit when done
 `
 
-	Bye = `
+	runBye = `
 👋 Thanks for using Git Workspace!
 🏁 Done!
 `
 
-	PS1 = `\[\033[0;32m\]git@repo-scm ➜ \[\033[01;34m\]%s \[\033[00m\]\$ `
+	runPS1 = `\[\033[0;32m\]git@repo-scm ➜ \[\033[01;34m\]%s \[\033[00m\]\$ `
 )
 
 var runCmd = &cobra.Command{
@@ -83,7 +83,7 @@ func init() {
 }
 
 func runRun(_ context.Context, cfg *config.Config, name string) error {
-	content := fmt.Sprintf(`export PS1="%s"`, fmt.Sprintf(PS1, name))
+	content := fmt.Sprintf(`export PS1="%s"`, fmt.Sprintf(runPS1, name))
 	if err := appendContentToBashrc(content); err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func runRun(_ context.Context, cfg *config.Config, name string) error {
 	script := fmt.Sprintf(`
 echo '%s'
 exec bash
-`, fmt.Sprintf(Welcome, mount))
+`, fmt.Sprintf(runWelcome, mount))
 
 	cmd := exec.Command("/bin/bash", "-c", script)
 	cmd.Dir = mount
@@ -108,7 +108,7 @@ exec bash
 		return err
 	}
 
-	fmt.Print(Bye)
+	fmt.Print(runBye)
 
 	return nil
 }

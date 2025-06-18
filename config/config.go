@@ -8,8 +8,10 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
-	"github.com/repo-scm/git/utils"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
+
+	"github.com/repo-scm/git/utils"
 )
 
 //go:embed git.yaml
@@ -61,10 +63,19 @@ func LoadConfig(name string) (*Config, error) {
 		if err := createConfig(name); err != nil {
 			return nil, errors.Wrap(err, "failed to read or create config\n")
 		}
+		viper.SetConfigFile(name)
+		if err := viper.ReadInConfig(); err != nil {
+			return nil, errors.Wrap(err, "failed to read config after creation\n")
+		}
 	}
 
-	if err := viper.Unmarshal(&config); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal config\n")
+	buf, err := os.ReadFile(viper.ConfigFileUsed())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := yaml.Unmarshal(buf, &config); err != nil {
+		return nil, err
 	}
 
 	return &config, nil

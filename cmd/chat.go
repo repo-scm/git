@@ -16,6 +16,32 @@ import (
 	"github.com/repo-scm/git/config"
 )
 
+const (
+	chatWelcome = `
+🚀 Starting chat with workspace: %s
+
+🪄 Model: %s
+
+Type 'help' for available commands
+Type 'exit' to end the session
+`
+
+	chatHelp = `
+💡 Available commands:
+
+help   - Show this help message
+clear  - Clear the screen
+models - Show all models
+model  - Show current model
+exit   - Exit the chat session
+`
+
+	chatBye = `
+👋 Thanks for using Git Chat!
+🏁 Done!
+`
+)
+
 var (
 	modelID   string
 	quietMode bool
@@ -26,10 +52,13 @@ var chatCmd = &cobra.Command{
 	Short: "Chat with workspace for git repo",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
+		var prompt string
 		ctx := context.Background()
 		config := GetConfig()
 		name := args[0]
-		prompt := args[1]
+		if len(args) == 2 {
+			prompt = args[1]
+		}
 		if name == "" {
 			_, _ = fmt.Fprintln(os.Stderr, "Please specify a workspace name")
 			os.Exit(1)
@@ -89,10 +118,7 @@ func runChat(ctx context.Context, cfg *config.Config, name, prompt string) error
 		return errors.Wrap(err, "failed to select model\n")
 	}
 
-	fmt.Printf("Model %s selected\n", fmt.Sprintf("%s/%s", model.ProviderName, model.ModelId))
-	fmt.Printf("Starting chat with workspace: %s\n", name)
-	fmt.Println("Type 'exit' to end the session")
-	fmt.Println("Type 'help' for available commands")
+	fmt.Printf(chatWelcome, name, fmt.Sprintf("%s/%s", model.ProviderName, model.ModelId))
 	fmt.Println(strings.Repeat("-", 50))
 
 	if quietMode {
@@ -165,7 +191,7 @@ func startInteractiveChat(ctx context.Context, model config.Model) error {
 			fmt.Printf("Current model: %s\n", model)
 			continue
 		case "exit":
-			fmt.Println("Goodbye!")
+			fmt.Print(chatBye)
 			return nil
 		}
 		if err := sendMessage(ctx, model, input); err != nil {
@@ -195,12 +221,7 @@ func sendMessage(_ context.Context, model config.Model, message string) error {
 }
 
 func showHelp() {
-	fmt.Println("Available commands:")
-	fmt.Println("  help   - Show this help message")
-	fmt.Println("  clear  - Clear the screen")
-	fmt.Println("  models - Show all models")
-	fmt.Println("  model  - Show current model")
-	fmt.Println("  exit   - Exit the chat session")
+	fmt.Print(chatHelp)
 	fmt.Println()
 }
 
