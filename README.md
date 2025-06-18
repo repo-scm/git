@@ -32,7 +32,11 @@ Legend of annotations:
 ✅ Add commands of chat and mcp for git workspace [repo-scm/git#5](https://github.com/repo-scm/git/issues/5)  
 🏃 Add commands of lint, build and exec for git workspace [repo-scm/git#4](https://github.com/repo-scm/git/issues/4)
 
-### Test
+### Proxy
+
+✅ Add proxy for git repository [repo-scm/git#8](https://github.com/repo-scm/git/issues/8)
+
+### Sandbox
 
 ✅ Add sandbox for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)
 
