@@ -21,9 +21,6 @@ const (
 🚀 Starting chat with workspace: %s
 
 🪄 Model: %s
-
-Type 'help' for available commands
-Type 'exit' to end the session
 `
 
 	chatHelp = `
@@ -119,11 +116,15 @@ func runChat(ctx context.Context, cfg *config.Config, name, prompt string) error
 	}
 
 	fmt.Printf(chatWelcome, name, fmt.Sprintf("%s/%s", model.ProviderName, model.ModelId))
-	fmt.Println(strings.Repeat("-", 50))
 
 	if quietMode {
 		return sendMessage(ctx, model, prompt)
 	}
+
+	fmt.Println()
+	fmt.Println("Type 'help' for available commands")
+	fmt.Println("Type 'exit' to end the session")
+	fmt.Println()
 
 	return startInteractiveChat(ctx, model)
 }
@@ -213,9 +214,10 @@ func sendMessage(_ context.Context, model config.Model, message string) error {
 		return errors.New("no api key found\n")
 	}
 
-	fmt.Printf("Send: %s\n", message)
-	fmt.Printf("Response: %s\n", message)
 	fmt.Println()
+	fmt.Printf("Send: %s\n", message)
+	fmt.Println()
+	fmt.Printf("Reply: hello world!\n")
 
 	return nil
 }
