@@ -34,7 +34,7 @@ Legend of annotations:
 
 ### Test
 
-🏃 Add sandbox for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)
+✅ Add sandbox for git workspace [repo-scm/git#6](https://github.com/repo-scm/git/issues/6)
 
 ### Namespace
 
