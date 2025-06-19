@@ -34,7 +34,7 @@ Legend of annotations:
 
 ### Proxy
 
-✅ Add proxy for git repository [repo-scm/git#8](https://github.com/repo-scm/git/issues/8)
+✅ Add proxy for git sites [repo-scm/git#8](https://github.com/repo-scm/git/issues/8)
 
 ### Sandbox
 
