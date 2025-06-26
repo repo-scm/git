@@ -130,7 +130,8 @@ Project License can be found [here](LICENSE).
 
 ## Reference
 
-- [openai-codex](https://github.com/openai/codex)
 - [cloud-native-build](https://docs.cnb.cool/zh/)
+- [gemini-cli](https://github.com/google-gemini/gemini-cli)
 - [git-clone-yyds](https://cloud.tencent.com/developer/article/2456809)
 - [git-clone-yyds](https://cnb.cool/cnb/cool/git-clone-yyds)
+- [openai-codex](https://github.com/openai/codex)
