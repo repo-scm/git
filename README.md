@@ -18,8 +18,14 @@ git workspace with copy-on-write
 ### Prerequisites
 
 ```bash
+# Install overlayfs
+curl -L https://github.com/containers/fuse-overlayfs/releases/download/v1.15/fuse-overlayfs-x86_64 -o fuse-overlayfs
+chmod +x fuse-overlayfs
+sudo mv fuse-overlayfs /usr/local/bin/
+
+# Install sshfs
 apt update
-apt install -y fuse-overlayfs sshfs util-linux
+apt install -y sshfs util-linux
 ```
 
 ### Commands
