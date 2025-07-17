@@ -130,6 +130,7 @@ Project License can be found [here](LICENSE).
 
 ## Reference
 
+- [claude-code](https://github.com/anthropics/claude-code)
 - [cloud-native-build](https://docs.cnb.cool/zh/)
 - [gemini-cli](https://github.com/google-gemini/gemini-cli)
 - [git-clone-yyds](https://cloud.tencent.com/developer/article/2456809)
