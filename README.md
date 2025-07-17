@@ -24,8 +24,8 @@ chmod +x fuse-overlayfs
 sudo mv fuse-overlayfs /usr/local/bin/
 
 # Install sshfs
-apt update
-apt install -y sshfs util-linux
+sudo apt update
+sudo apt install -y sshfs util-linux
 ```
 
 ### Commands
