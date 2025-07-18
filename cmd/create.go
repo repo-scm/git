@@ -180,10 +180,13 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 		}
 	}
 
-	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,index=off", path.Clean(repo), upperPath, workPath)
+	cmd := exec.Command("fuse-overlayfs",
+		"-o", fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", path.Clean(repo), upperPath, workPath),
+		path.Clean(mount),
+	)
 
-	if err := syscall.Mount("overlay", mount, "overlay", 0, opts); err != nil {
-		return errors.Wrap(err, "failed to mount overlay\n")
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to mount overlay with fuse-overlayfs\n")
 	}
 
 	fmt.Printf("successfully mounted overlay at %s\n", mount)

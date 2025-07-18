@@ -141,7 +141,9 @@ func UnmountOverlay(_ context.Context, mount string) error {
 		_ = os.RemoveAll(upperPath)
 	}(mount, workPath, upperPath)
 
-	if err := syscall.Unmount(mount, 0); err != nil {
+	cmd := exec.Command("fusermount", "-u", path.Clean(mount))
+
+	if err := cmd.Run(); err != nil {
 		return errors.Wrap(err, "failed to unmount overlay\n")
 	}
 
