@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -129,10 +130,100 @@ func runList(ctx context.Context, cfg *config.Config, name string) error {
 	return nil
 }
 
-func QueryWorkspaces(_ context.Context, cfg *config.Config, verbose bool) ([]Workspace, error) {
+func QueryWorkspaces(ctx context.Context, cfg *config.Config, verbose bool) ([]Workspace, error) {
 	var workspaces []Workspace
 
 	overlayPath := utils.ExpandTilde(cfg.Overlay.Mount)
+
+	mountedWorkspaces, err := getWorkspacesFromMount(ctx, overlayPath, verbose)
+	if err != nil {
+		return getWorkspacesFromFilesystem(overlayPath, cfg, verbose)
+	}
+
+	workspaces = append(workspaces, mountedWorkspaces...)
+
+	if verbose {
+		sshfsPath := utils.ExpandTilde(cfg.Sshfs.Mount)
+		sshfsWorkspaces, err := getWorkspacesFromMount(ctx, sshfsPath, verbose)
+		if err != nil {
+			sshfsWorkspaces = getSshfsWorkspacesFromFilesystem(sshfsPath)
+		}
+		workspaces = append(workspaces, sshfsWorkspaces...)
+	}
+
+	return workspaces, nil
+}
+
+func getWorkspacesFromMount(ctx context.Context, basePath string, verbose bool) ([]Workspace, error) {
+	var workspaces []Workspace
+
+	cmd := exec.CommandContext(ctx, "mount")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		parts := strings.Fields(line)
+		if len(parts) < 6 {
+			continue
+		}
+
+		onIndex := -1
+		typeIndex := -1
+		for i, part := range parts {
+			if part == "on" {
+				onIndex = i
+			}
+			if part == "type" {
+				typeIndex = i
+				break
+			}
+		}
+
+		if onIndex == -1 || typeIndex == -1 || typeIndex <= onIndex+1 {
+			continue
+		}
+
+		mountpoint := strings.Join(parts[onIndex+1:typeIndex], " ")
+		filesystem := ""
+		if typeIndex+1 < len(parts) {
+			filesystem = parts[typeIndex+1]
+		}
+
+		if strings.HasPrefix(mountpoint, basePath) && mountpoint != basePath {
+			relPath, err := filepath.Rel(basePath, mountpoint)
+			if err != nil {
+				continue
+			}
+			if depth := strings.Count(relPath, string(filepath.Separator)); depth == 0 {
+				var name string
+				if verbose {
+					if strings.HasPrefix(relPath, "upper-") || strings.HasPrefix(relPath, "work-") {
+						name = ""
+					} else {
+						name = relPath
+					}
+					workspaces = append(workspaces, Workspace{name, mountpoint, filesystem})
+				} else {
+					if !strings.HasPrefix(relPath, "upper-") && !strings.HasPrefix(relPath, "work-") {
+						workspaces = append(workspaces, Workspace{relPath, mountpoint, filesystem})
+					}
+				}
+			}
+		}
+	}
+
+	return workspaces, nil
+}
+
+func getWorkspacesFromFilesystem(overlayPath string, cfg *config.Config, verbose bool) ([]Workspace, error) {
+	var workspaces []Workspace
 
 	_ = filepath.WalkDir(overlayPath, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -163,21 +254,30 @@ func QueryWorkspaces(_ context.Context, cfg *config.Config, verbose bool) ([]Wor
 
 	if verbose {
 		sshfsPath := utils.ExpandTilde(cfg.Sshfs.Mount)
-		_ = filepath.WalkDir(sshfsPath, func(p string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			relPath, _ := filepath.Rel(sshfsPath, p)
-			if depth := strings.Count(relPath, string(filepath.Separator)); depth == 0 {
-				if d.IsDir() {
-					if p != sshfsPath {
-						workspaces = append(workspaces, Workspace{"", p, "sshfs"})
-					}
-				}
-			}
-			return nil
-		})
+		sshfsWorkspaces := getSshfsWorkspacesFromFilesystem(sshfsPath)
+		workspaces = append(workspaces, sshfsWorkspaces...)
 	}
 
 	return workspaces, nil
+}
+
+func getSshfsWorkspacesFromFilesystem(sshfsPath string) []Workspace {
+	var workspaces []Workspace
+
+	_ = filepath.WalkDir(sshfsPath, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, _ := filepath.Rel(sshfsPath, p)
+		if depth := strings.Count(relPath, string(filepath.Separator)); depth == 0 {
+			if d.IsDir() {
+				if p != sshfsPath {
+					workspaces = append(workspaces, Workspace{"", p, "sshfs"})
+				}
+			}
+		}
+		return nil
+	})
+
+	return workspaces
 }
