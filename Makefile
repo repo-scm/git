@@ -4,6 +4,9 @@
 build: go-build
 .PHONY: build
 
+install: go-install
+.PHONY: install
+
 lint: go-lint
 .PHONY: lint
 
@@ -16,6 +19,9 @@ all-test: go-all-test
 
 go-build: FORCE
 	./script/build.sh
+
+go-install: FORCE
+	./script/install.sh
 
 go-lint: FORCE
 	./script/lint.sh

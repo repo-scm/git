@@ -7,4 +7,5 @@ target="git"
 
 go env -w GOPROXY=https://goproxy.cn,direct
 
+./script/download.sh
 CGO_ENABLED=0 GOARCH=$(go env GOARCH) GOOS=$(go env GOOS) go build -ldflags "$ldflags" -o bin/$target .

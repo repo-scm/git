@@ -1,0 +1,3 @@
+# This is a placeholder file for go:embed directive
+# The actual fuse-overlayfs binary will be downloaded during build process
+# See script/download.sh

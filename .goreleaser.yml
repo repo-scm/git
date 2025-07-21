@@ -1,4 +1,8 @@
 ---
+before:
+  hooks:
+    - ./script/download.sh
+
 builds:
   - id: git
     env:

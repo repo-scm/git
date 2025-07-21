@@ -18,11 +18,6 @@ git workspace with copy-on-write
 ### Prerequisites
 
 ```bash
-# Install overlayfs
-curl -L https://github.com/containers/fuse-overlayfs/releases/download/v1.15/fuse-overlayfs-x86_64 -o fuse-overlayfs
-chmod +x fuse-overlayfs
-sudo mv fuse-overlayfs /usr/local/bin/
-
 # Install sshfs
 sudo apt update
 sudo apt install -y sshfs util-linux
@@ -30,66 +25,76 @@ sudo apt install -y sshfs util-linux
 
 ### Commands
 
-#### 1. Create git workspace
+#### 1. Install toolchains
+
+```bash
+# Install toolchains
+sudo git install
+
+# Show toolchains status
+sudo git status
+```
+
+#### 2. Create git workspace
 
 ```bash
 # Create workspace for local repo
-git create /local/repo [--name string]
+sudo git create /local/repo [--name string]
 
 # Create workspace for remote repo
-git create user@host:/remote/repo [--name string]
+sudo git create user@host:/remote/repo [--name string]
 ```
 
 > **Notes**: Workspace name is set to `<repo_name>-<7_bit_hash>` in default if `--name string` not set.
 
-#### 2. List git workspaces
+#### 3. List git workspaces
 
 ```bash
 # List a workspace
-git list <workspace_name>
+sudo git list <workspace_name>
 
 # List a workspace in verbose mode
-git list <workspace_name> --verbose
+sudo git list <workspace_name> --verbose
 
 # List all workspaces
-git list --all
+sudo git list --all
 
 # List all workspaces in verbose mode
-git list --all --verbose
+sudo git list --all --verbose
 ```
 
-#### 3. Run git workspace
+#### 4. Run git workspace
 
 ```bash
-git run <workspace_name>
+sudo git run <workspace_name>
 ```
 
-#### 4. Delete git workspace
+#### 5. Delete git workspace
 
 ```bash
 # Delete a workspace
-git delete <workspace_name>
+sudo git delete <workspace_name>
 
 # Delete all workspaces
-git delete --all
+sudo git delete --all
 ```
 
-#### 5. Chat with git workspace
+#### 6. Chat with git workspace
 
 ```bash
 # Chat with workspace in interactive mode
-git chat <workspace_name> [prompt] [--model string]
+sudo git chat <workspace_name> [prompt] [--model string]
 
 # Chat with workspace in quiet mode
-git chat <workspace_name> [prompt] [--model string] --quiet
+sudo git chat <workspace_name> [prompt] [--model string] --quiet
 ```
 
 > **Notes**: Model name is set to `litellm/anthropic/claude-opus-4-20250514` in default if `--model string` not set.
 
-#### 6. MCP for git workspace
+#### 7. MCP for git workspace
 
 ```bash
-git mcp <workspace_name>
+sudo git mcp <workspace_name>
 ```
 
 
