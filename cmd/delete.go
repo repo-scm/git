@@ -97,9 +97,17 @@ func runDelete(ctx context.Context, cfg *config.Config, name string) error {
 		sshfsPath := path.Join(utils.ExpandTilde(cfg.Sshfs.Mount), name)
 		overlayPath := path.Join(utils.ExpandTilde(cfg.Overlay.Mount), name)
 		if err := UnmountOverlay(ctx, overlayPath); err != nil {
+			if ctx.Err() != nil {
+				fmt.Println("Operation cancelled")
+				return ctx.Err()
+			}
 			fmt.Println(err.Error())
 		}
 		if err := UnmountSshfs(ctx, sshfsPath); err != nil {
+			if ctx.Err() != nil {
+				fmt.Println("Operation cancelled")
+				return ctx.Err()
+			}
 			fmt.Println(err.Error())
 		}
 		return nil
@@ -111,12 +119,27 @@ func runDelete(ctx context.Context, cfg *config.Config, name string) error {
 	}
 
 	for _, item := range workspaces {
+		select {
+		case <-ctx.Done():
+			fmt.Println("Operation cancelled")
+			return ctx.Err()
+		default:
+		}
+
 		sshfsPath := path.Join(utils.ExpandTilde(cfg.Sshfs.Mount), item.Name)
 		overlayPath := path.Join(utils.ExpandTilde(cfg.Overlay.Mount), item.Name)
 		if err := UnmountOverlay(ctx, overlayPath); err != nil {
+			if ctx.Err() != nil {
+				fmt.Println("Operation cancelled")
+				return ctx.Err()
+			}
 			fmt.Println(err.Error())
 		}
 		if err := UnmountSshfs(ctx, sshfsPath); err != nil {
+			if ctx.Err() != nil {
+				fmt.Println("Operation cancelled")
+				return ctx.Err()
+			}
 			fmt.Println(err.Error())
 		}
 	}
@@ -124,7 +147,7 @@ func runDelete(ctx context.Context, cfg *config.Config, name string) error {
 	return nil
 }
 
-func UnmountOverlay(_ context.Context, mount string) error {
+func UnmountOverlay(ctx context.Context, mount string) error {
 	if mount == "" {
 		return errors.New("mount are required\n")
 	}
@@ -141,9 +164,12 @@ func UnmountOverlay(_ context.Context, mount string) error {
 		_ = os.RemoveAll(upperPath)
 	}(mount, workPath, upperPath)
 
-	cmd := exec.Command("fusermount", "-u", path.Clean(mount))
+	cmd := exec.CommandContext(ctx, "fusermount", "-u", path.Clean(mount))
 
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return errors.Wrap(err, "failed to unmount overlay\n")
 	}
 
@@ -152,7 +178,7 @@ func UnmountOverlay(_ context.Context, mount string) error {
 	return nil
 }
 
-func UnmountSshfs(_ context.Context, mount string) error {
+func UnmountSshfs(ctx context.Context, mount string) error {
 	if mount == "" {
 		return errors.New("mount is required\n")
 	}
@@ -161,9 +187,12 @@ func UnmountSshfs(_ context.Context, mount string) error {
 		_ = os.RemoveAll(path)
 	}(mount)
 
-	cmd := exec.Command("fusermount", "-u", path.Clean(mount))
+	cmd := exec.CommandContext(ctx, "fusermount", "-u", path.Clean(mount))
 
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		fmt.Println(err.Error())
 		return nil
 	}
