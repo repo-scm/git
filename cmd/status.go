@@ -11,7 +11,7 @@ import (
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show toolchains status",
+	Short: "Show install status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		_ = checkOverlayfs()
 		_ = checkSshfs()

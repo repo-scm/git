@@ -31,7 +31,7 @@ sudo apt install -y sshfs util-linux
 # Install toolchains
 sudo git install
 
-# Show toolchains status
+# Show install status
 sudo git status
 ```
 
