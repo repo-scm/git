@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,7 +12,6 @@ import (
 	"path"
 	"syscall"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -149,7 +149,7 @@ func runDelete(ctx context.Context, cfg *config.Config, name string) error {
 
 func UnmountOverlay(ctx context.Context, mount string) error {
 	if mount == "" {
-		return errors.New("mount are required\n")
+		return fmt.Errorf("mount is empty")
 	}
 
 	mountDir := path.Dir(path.Clean(mount))
@@ -170,7 +170,7 @@ func UnmountOverlay(ctx context.Context, mount string) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		return errors.Wrap(err, "failed to unmount overlay\n")
+		return fmt.Errorf("fusermount -u %s -u %s failed: %s", mount, workPath, err)
 	}
 
 	fmt.Printf("successfully unmounted overlay\n")
@@ -180,18 +180,30 @@ func UnmountOverlay(ctx context.Context, mount string) error {
 
 func UnmountSshfs(ctx context.Context, mount string) error {
 	if mount == "" {
-		return errors.New("mount is required\n")
+		return fmt.Errorf("mount is required")
 	}
 
 	defer func(path string) {
 		_ = os.RemoveAll(path)
 	}(mount)
 
+	// Check if mount point exists and is actually mounted
+	if _, err := os.Stat(mount); os.IsNotExist(err) {
+		return nil
+	}
+
 	cmd := exec.CommandContext(ctx, "fusermount", "-u", path.Clean(mount))
 
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
+		}
+		// Check if the error is because nothing is mounted
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			if exitError.ExitCode() == 1 {
+				return nil
+			}
 		}
 		fmt.Println(err.Error())
 		return nil
