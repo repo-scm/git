@@ -28,7 +28,7 @@ var (
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create workspace for git repo",
+	Short: "Create workspace",
 	Args:  cobra.RangeArgs(1, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()

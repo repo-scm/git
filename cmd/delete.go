@@ -25,7 +25,7 @@ var (
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete workspace for git repo",
+	Short: "Delete workspace",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var name string

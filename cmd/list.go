@@ -26,7 +26,7 @@ var (
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List workspaces for git repo",
+	Short: "List workspaces",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var name string

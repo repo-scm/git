@@ -36,7 +36,7 @@ const (
 
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run workspace for git repo",
+	Short: "Run workspace",
 	Args:  cobra.RangeArgs(1, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()

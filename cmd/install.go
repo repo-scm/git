@@ -12,7 +12,7 @@ import (
 
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install toolchains for git repo",
+	Short: "Install toolchains",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Installing embedded fuse-overlayfs (%d bytes)...\n", embedded.GetEmbeddedSize())
 		if err := embedded.InstallFuseOverlayfs(); err != nil {

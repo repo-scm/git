@@ -46,7 +46,7 @@ var (
 
 var chatCmd = &cobra.Command{
 	Use:   "chat",
-	Short: "Chat with workspace for git repo",
+	Short: "Chat with workspace",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		var prompt string
