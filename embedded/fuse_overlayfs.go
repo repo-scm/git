@@ -26,21 +26,7 @@ func InstallFuseOverlayfs() error {
 		return fmt.Errorf("failed to write fuse-overlayfs to %s: %v", targetPathFuseOverlayFs, err)
 	}
 
-	fmt.Printf("Successfully installed fuse-overlayfs to %s (%d bytes)\n", targetPathFuseOverlayFs, len(fuseOverlayfsData))
+	fmt.Printf("Successfully installed fuse-overlayfs to %s\n", targetPathFuseOverlayFs)
 
 	return nil
-}
-
-func EnsureFuseOverlayfs() error {
-	if info, err := os.Stat(targetPathFuseOverlayFs); err == nil {
-		if info.Mode()&0111 != 0 {
-			return nil
-		}
-	}
-
-	return InstallFuseOverlayfs()
-}
-
-func GetEmbeddedSize() int {
-	return len(fuseOverlayfsData)
 }
