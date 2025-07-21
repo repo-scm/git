@@ -29,7 +29,7 @@ func checkOverlayfs() error {
 	fmt.Printf("fuse-overlayfs:\n")
 
 	if info, err := os.Stat(targetPath); err == nil {
-		fmt.Printf("  Installed: ✓ %s (%d bytes)\n", targetPath, info.Size())
+		fmt.Printf("  Installed: ✓ %s\n", targetPath)
 		if info.Mode()&0111 != 0 {
 			fmt.Printf("  Executable: ✓\n")
 		} else {
@@ -49,7 +49,7 @@ func checkSshfs() error {
 	fmt.Printf("\nsshfs:\n")
 
 	if info, err := os.Stat(sshfsPath); err == nil {
-		fmt.Printf("  Installed: ✓ %s (%d bytes)\n", sshfsPath, info.Size())
+		fmt.Printf("  Installed: ✓ %s\n", sshfsPath)
 		if info.Mode()&0111 != 0 {
 			fmt.Printf("  Executable: ✓\n")
 		} else {
