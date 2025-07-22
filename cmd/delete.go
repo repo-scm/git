@@ -158,22 +158,46 @@ func UnmountOverlay(ctx context.Context, mount string) error {
 	upperPath := path.Join(mountDir, "upper-"+mountName)
 	workPath := path.Join(mountDir, "work-"+mountName)
 
-	defer func(mount, workPath, upperPath string) {
-		_ = os.RemoveAll(mount)
-		_ = os.RemoveAll(workPath)
-		_ = os.RemoveAll(upperPath)
-	}(mount, workPath, upperPath)
-
+	// Try normal unmount first
 	cmd := exec.CommandContext(ctx, "fusermount", "-u", path.Clean(mount))
-
 	if err := cmd.Run(); err != nil {
-		if ctx.Err() != nil {
-			return ctx.Err()
+		// Try forced unmount if normal fails
+		forceCmd := exec.CommandContext(ctx, "fusermount", "-uz", path.Clean(mount))
+		forceErr := forceCmd.Run()
+		if forceErr != nil {
+			// Try lazy umount as last resort
+			lazyCmd := exec.CommandContext(ctx, "umount", "-l", path.Clean(mount))
+			lazyErr := lazyCmd.Run()
+			if lazyErr != nil {
+				return fmt.Errorf("all unmount attempts failed for %s: %v, %v, %v", mount, err, forceErr, lazyErr)
+			}
 		}
-		return fmt.Errorf("fusermount -u %s -u %s failed: %s", mount, workPath, err)
 	}
 
 	fmt.Printf("successfully unmounted overlay\n")
+
+	// Remove mount, work, and upper dirs using rm -rf for better symlink handling
+	var removeErrs []error
+
+	// Use rm -rf command for more robust removal, especially with symlinks
+	dirsToRemove := []string{mount, workPath, upperPath}
+	for _, dir := range dirsToRemove {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			continue // Skip if directory doesn't exist
+		}
+		// First try Go's os.RemoveAll
+		if rmErr := os.RemoveAll(dir); rmErr != nil {
+			// If Go's RemoveAll fails, use rm -rf which handles symlinks better
+			rmCmd := exec.CommandContext(ctx, "rm", "-rf", dir)
+			if rmCmdErr := rmCmd.Run(); rmCmdErr != nil {
+				removeErrs = append(removeErrs, fmt.Errorf("failed to remove dir %s: go error: %v, rm error: %v", dir, rmErr, rmCmdErr))
+			}
+		}
+	}
+
+	if len(removeErrs) > 0 {
+		return fmt.Errorf("cleanup errors occurred for workspace %s", mountName)
+	}
 
 	return nil
 }
@@ -182,10 +206,6 @@ func UnmountSshfs(ctx context.Context, mount string) error {
 	if mount == "" {
 		return fmt.Errorf("mount is required")
 	}
-
-	defer func(path string) {
-		_ = os.RemoveAll(path)
-	}(mount)
 
 	// Check if mount point exists and is actually mounted
 	if _, err := os.Stat(mount); os.IsNotExist(err) {
@@ -210,6 +230,15 @@ func UnmountSshfs(ctx context.Context, mount string) error {
 	}
 
 	fmt.Printf("successfully unmounted sshfs\n")
+
+	// Remove mount directory using rm -rf for better symlink handling
+	if rmErr := os.RemoveAll(mount); rmErr != nil {
+		// If Go's RemoveAll fails, use rm -rf which handles symlinks better
+		rmCmd := exec.CommandContext(ctx, "rm", "-rf", mount)
+		if rmCmdErr := rmCmd.Run(); rmCmdErr != nil {
+			fmt.Printf("Warning: failed to remove sshfs mount dir %s: go error: %v, rm error: %v\n", mount, rmErr, rmCmdErr)
+		}
+	}
 
 	return nil
 }
