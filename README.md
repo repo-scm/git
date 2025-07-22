@@ -69,6 +69,22 @@ sudo git list --all --verbose
 sudo git run <workspace_name>
 ```
 
+##### 4.1. Clean directories in workspace
+
+When working inside an overlayfs workspace, use the clean command to remove directories safely:
+
+```bash
+# Clean specific directories (use inside workspace)
+git clean build/
+git clean build/ temp/ cache/
+
+# Clean with absolute paths (requires --force flag)
+git clean --force /absolute/path/to/directory
+```
+
+> **Notes**: The `git clean` command uses overlayfs-aware removal methods to avoid "Directory not empty" errors that can
+> occur with standard `rm -rf` commands in overlayfs mounted workspaces.
+
 #### 5. Delete git workspace
 
 ```bash

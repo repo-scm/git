@@ -145,14 +145,24 @@ func MountSshfs(_ context.Context, repo, mount, options string, port int) error 
 		return errors.Wrap(err, "failed to make directory\n")
 	}
 
+	// Ensure proper ownership of mount point
+	if err := os.Chown(mount, os.Getuid(), os.Getgid()); err != nil {
+		fmt.Printf("Warning: failed to set ownership of mount point %s: %v\n", mount, err)
+	}
+
 	cmd := exec.Command("sshfs",
 		repo,
 		path.Clean(mount),
 		"-o", options,
 		"-o", fmt.Sprintf("port=%d", port),
+		"-o", fmt.Sprintf("uid=%d,gid=%d,umask=022", os.Getuid(), os.Getgid()),
 	)
 
 	if err := cmd.Run(); err != nil {
+		// Clean up the directory we created if mount fails
+		if removeErr := os.RemoveAll(mount); removeErr != nil {
+			fmt.Printf("Warning: failed to clean up mount directory %s: %v\n", mount, removeErr)
+		}
 		return errors.Wrap(err, "failed to mount sshfs\n")
 	}
 
@@ -178,7 +188,18 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 		if err := os.MkdirAll(item, utils.PermDir); err != nil {
 			return errors.Wrap(err, "failed to make directory\n")
 		}
+		// Ensure proper ownership
+		if err := os.Chown(item, os.Getuid(), os.Getgid()); err != nil {
+			fmt.Printf("Warning: failed to set ownership of %s: %v\n", item, err)
+		}
 	}
+
+	// Test write access to upper directory before mounting
+	testFile := path.Join(upperPath, ".write_test")
+	if err := os.WriteFile(testFile, []byte("test"), utils.PermFile); err != nil {
+		return errors.Wrap(err, "failed to write test file to upper directory - check permissions\n")
+	}
+	_ = os.Remove(testFile)
 
 	cmd := exec.Command("fuse-overlayfs",
 		"-o", fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", path.Clean(repo), upperPath, workPath),
@@ -186,6 +207,16 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 	)
 
 	if err := cmd.Run(); err != nil {
+		// Clean up the directories we created if mount fails
+		dirsToRemove := []string{mount, upperPath, workPath}
+		for _, dir := range dirsToRemove {
+			// Only remove if it's a subdirectory (not the main mount directory)
+			if dir != mountDir {
+				if removeErr := os.RemoveAll(dir); removeErr != nil {
+					fmt.Printf("Warning: failed to clean up directory %s: %v\n", dir, removeErr)
+				}
+			}
+		}
 		return errors.Wrap(err, "failed to mount overlay with fuse-overlayfs\n")
 	}
 

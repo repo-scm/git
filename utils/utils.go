@@ -5,6 +5,7 @@ package utils
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -50,6 +51,40 @@ func WriteTable(_ context.Context, data [][]string) error {
 	table.Header(data[0])
 	_ = table.Bulk(data[1:])
 	_ = table.Render()
+
+	return nil
+}
+
+// OverlayClean provides a user-friendly way to clean directories in overlayfs workspaces
+// Use this instead of 'rm -rf' when working inside git workspaces to avoid "Directory not empty" errors
+func OverlayClean(targetPath string) error {
+	if targetPath == "" {
+		return nil
+	}
+
+	// First attempt: Standard removal
+	if err := os.RemoveAll(targetPath); err == nil {
+		return nil
+	}
+
+	// Second attempt: Fix permissions and try again
+	_ = exec.Command("find", targetPath, "-type", "d", "-exec", "chmod", "755", "{}", "+").Run()
+	_ = exec.Command("find", targetPath, "-type", "f", "-exec", "chmod", "644", "{}", "+").Run()
+	if err := os.RemoveAll(targetPath); err == nil {
+		return nil
+	}
+
+	// Third attempt: Use find with -delete (handles overlayfs better than rm -rf)
+	if err := exec.Command("find", targetPath, "-depth", "-delete").Run(); err == nil {
+		return nil
+	}
+
+	// Fourth attempt: Remove files first, then directories
+	_ = exec.Command("find", targetPath, "-type", "f", "-delete").Run()
+	_ = exec.Command("find", targetPath, "-type", "d", "-empty", "-delete").Run()
+
+	// Final check - try to remove the target directory if it still exists
+	_ = os.Remove(targetPath)
 
 	return nil
 }

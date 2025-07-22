@@ -22,7 +22,7 @@ const (
 	runWelcome = `
 🚀 Welcome to the Git Workspace!
 📁 Current directory: %s
-💡 Custom PS1 is active
+🧹 Use "git clean /path/to/name" to safely remove directories in overlayfs
 👋 Type exit when done
 `
 

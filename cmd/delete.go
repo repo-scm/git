@@ -179,18 +179,28 @@ func UnmountOverlay(ctx context.Context, mount string) error {
 	// Remove mount, work, and upper dirs using rm -rf for better symlink handling
 	var removeErrs []error
 
-	// Use rm -rf command for more robust removal, especially with symlinks
+	// Use rm -rf command for more robust removal, especially with symlinks and permission issues
 	dirsToRemove := []string{mount, workPath, upperPath}
 	for _, dir := range dirsToRemove {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			continue // Skip if directory doesn't exist
 		}
+
+		// Try to fix permissions first before removal
+		if fixErr := exec.Command("chmod", "-R", "u+w", dir).Run(); fixErr != nil {
+			fmt.Printf("Warning: failed to fix permissions for %s: %v\n", dir, fixErr)
+		}
+
 		// First try Go's os.RemoveAll
 		if rmErr := os.RemoveAll(dir); rmErr != nil {
-			// If Go's RemoveAll fails, use rm -rf which handles symlinks better
+			// If Go's RemoveAll fails, use rm -rf which handles permissions better
 			rmCmd := exec.CommandContext(ctx, "rm", "-rf", dir)
 			if rmCmdErr := rmCmd.Run(); rmCmdErr != nil {
-				removeErrs = append(removeErrs, fmt.Errorf("failed to remove dir %s: go error: %v, rm error: %v", dir, rmErr, rmCmdErr))
+				// Final attempt with sudo if available
+				sudoCmd := exec.CommandContext(ctx, "sudo", "rm", "-rf", dir)
+				if sudoCmdErr := sudoCmd.Run(); sudoCmdErr != nil {
+					removeErrs = append(removeErrs, fmt.Errorf("failed to remove dir %s: go error: %v, rm error: %v, sudo error: %v", dir, rmErr, rmCmdErr, sudoCmdErr))
+				}
 			}
 		}
 	}
