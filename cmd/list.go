@@ -50,6 +50,7 @@ type Workspace struct {
 	Name       string
 	Mount      string
 	Filesystem string
+	Created    string
 }
 
 // nolint:gochecknoinits
@@ -93,7 +94,7 @@ func init() {
 
 func runList(ctx context.Context, cfg *config.Config, name string) error {
 	data := [][]string{
-		{"NAME", "MOUNT", "FILESYSTEM"},
+		{"NAME", "MOUNT", "FILESYSTEM", "CREATED"},
 	}
 
 	workspaces, err := QueryWorkspaces(ctx, cfg, verboseMode)
@@ -105,11 +106,11 @@ func runList(ctx context.Context, cfg *config.Config, name string) error {
 		for _, item := range workspaces {
 			if verboseMode {
 				if strings.HasSuffix(path.Base(item.Mount), name) {
-					data = append(data, []string{item.Name, item.Mount, item.Filesystem})
+					data = append(data, []string{item.Name, item.Mount, item.Filesystem, item.Created})
 				}
 			} else {
 				if item.Name == name {
-					data = append(data, []string{item.Name, item.Mount, item.Filesystem})
+					data = append(data, []string{item.Name, item.Mount, item.Filesystem, item.Created})
 				}
 			}
 		}
@@ -120,7 +121,7 @@ func runList(ctx context.Context, cfg *config.Config, name string) error {
 	}
 
 	for _, item := range workspaces {
-		data = append(data, []string{item.Name, item.Mount, item.Filesystem})
+		data = append(data, []string{item.Name, item.Mount, item.Filesystem, item.Created})
 	}
 
 	if err := utils.WriteTable(ctx, data); err != nil {
@@ -202,6 +203,7 @@ func getWorkspacesFromMount(ctx context.Context, basePath string, verbose bool) 
 				continue
 			}
 			if depth := strings.Count(relPath, string(filepath.Separator)); depth == 0 {
+				created := getFilesystemCreatedTime(mountpoint)
 				var name string
 				if verbose {
 					if strings.HasPrefix(relPath, "upper-") || strings.HasPrefix(relPath, "work-") {
@@ -209,10 +211,10 @@ func getWorkspacesFromMount(ctx context.Context, basePath string, verbose bool) 
 					} else {
 						name = relPath
 					}
-					workspaces = append(workspaces, Workspace{name, mountpoint, filesystem})
+					workspaces = append(workspaces, Workspace{name, mountpoint, filesystem, created})
 				} else {
 					if !strings.HasPrefix(relPath, "upper-") && !strings.HasPrefix(relPath, "work-") {
-						workspaces = append(workspaces, Workspace{relPath, mountpoint, filesystem})
+						workspaces = append(workspaces, Workspace{relPath, mountpoint, filesystem, created})
 					}
 				}
 			}
@@ -233,6 +235,7 @@ func getWorkspacesFromFilesystem(overlayPath string, cfg *config.Config, verbose
 		if depth := strings.Count(relPath, string(filepath.Separator)); depth == 0 {
 			if d.IsDir() {
 				if p != overlayPath {
+					created := getFilesystemCreatedTime(p)
 					var name string
 					if verbose {
 						if strings.HasPrefix(relPath, "upper-") || strings.HasPrefix(relPath, "work-") {
@@ -240,10 +243,10 @@ func getWorkspacesFromFilesystem(overlayPath string, cfg *config.Config, verbose
 						} else {
 							name = relPath
 						}
-						workspaces = append(workspaces, Workspace{name, p, "overlay"})
+						workspaces = append(workspaces, Workspace{name, p, "overlay", created})
 					} else {
 						if !strings.HasPrefix(relPath, "upper-") && !strings.HasPrefix(relPath, "work-") {
-							workspaces = append(workspaces, Workspace{relPath, p, "overlay"})
+							workspaces = append(workspaces, Workspace{relPath, p, "overlay", created})
 						}
 					}
 				}
@@ -272,7 +275,8 @@ func getSshfsWorkspacesFromFilesystem(sshfsPath string) []Workspace {
 		if depth := strings.Count(relPath, string(filepath.Separator)); depth == 0 {
 			if d.IsDir() {
 				if p != sshfsPath {
-					workspaces = append(workspaces, Workspace{"", p, "sshfs"})
+					created := getFilesystemCreatedTime(p)
+					workspaces = append(workspaces, Workspace{"", p, "sshfs", created})
 				}
 			}
 		}
@@ -280,4 +284,12 @@ func getSshfsWorkspacesFromFilesystem(sshfsPath string) []Workspace {
 	})
 
 	return workspaces
+}
+
+func getFilesystemCreatedTime(path string) string {
+	if info, err := os.Stat(path); err == nil {
+		return info.ModTime().Format("2006-01-02 15:04:05")
+	}
+
+	return "N/A"
 }
