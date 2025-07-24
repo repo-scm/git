@@ -4,13 +4,14 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -37,11 +38,23 @@ const (
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run workspace",
-	Args:  cobra.RangeArgs(1, 1),
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		config := GetConfig()
-		name := args[0]
+
+		var name string
+		if len(args) == 0 {
+			selectedName, err := selectWorkspaceInteractively(ctx, config)
+			if err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, err.Error())
+				os.Exit(1)
+			}
+			name = selectedName
+		} else {
+			name = args[0]
+		}
+
 		if err := runRun(ctx, config, name); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
@@ -55,7 +68,7 @@ func init() {
 
 	runCmd.SetUsageFunc(func(cmd *cobra.Command) error {
 		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "Usage:\n")
-		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  %s %s <workspace_name> [flags]\n\n", cmd.Root().Name(), cmd.Name())
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  %s %s [workspace_name] [flags]\n\n", cmd.Root().Name(), cmd.Name())
 		if cmd.HasLocalFlags() {
 			_, _ = fmt.Fprintf(cmd.OutOrStderr(), "Flags:\n")
 			cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
@@ -78,6 +91,7 @@ func init() {
 		}
 		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\nExample:\n")
 		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git run your_workspace\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git run # Interactive workspace selection\n")
 		return nil
 	})
 }
@@ -113,10 +127,61 @@ exec bash
 	return nil
 }
 
+func selectWorkspaceInteractively(ctx context.Context, cfg *config.Config) (string, error) {
+	// Get all available workspaces
+	workspaces, err := QueryWorkspaces(ctx, cfg, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to querying workspaces: %w", err)
+	}
+
+	if len(workspaces) == 0 {
+		return "", errors.New("no workspaces found. Please create a workspace first using 'git create'")
+	}
+
+	// Extract workspace names for the prompt
+	var workspaceNames []string
+	for _, workspace := range workspaces {
+		if workspace.Name != "" {
+			workspaceNames = append(workspaceNames, workspace.Name)
+		}
+	}
+
+	if len(workspaceNames) == 0 {
+		return "", errors.New("no valid workspaces found")
+	}
+
+	// Create the interactive prompt
+	prompt := promptui.Select{
+		Label:        "Select a workspace to run",
+		Items:        workspaceNames,
+		Size:         10,
+		HideSelected: false,
+		Templates: &promptui.SelectTemplates{
+			Label:    "{{ . }}:",
+			Active:   "▶ {{ . | cyan | bold }}",
+			Inactive: "  {{ . | white }}",
+			Selected: "✓ Selected workspace: {{ . | green | bold }}",
+			Help:     "Use ↑/↓ arrow keys to navigate, Enter to select, Ctrl+C to cancel",
+		},
+	}
+
+	index, result, err := prompt.Run()
+	if err != nil {
+		if errors.Is(err, promptui.ErrInterrupt) {
+			return "", errors.New("operation cancelled by user")
+		}
+		return "", fmt.Errorf("failed to select workspace: %w", err)
+	}
+
+	_ = index
+
+	return result, nil
+}
+
 func appendContentToBashrc(content string) error {
 	file, err := os.OpenFile(os.ExpandEnv("$HOME/.bashrc"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, utils.PermFile)
 	if err != nil {
-		return errors.Wrap(err, "failed to open bashrc\n")
+		return fmt.Errorf("failed to open bashrc file: %w", err)
 	}
 
 	defer func(file *os.File) {
@@ -124,7 +189,7 @@ func appendContentToBashrc(content string) error {
 	}(file)
 
 	if _, err := file.WriteString(content); err != nil {
-		return errors.Wrap(err, "failed to write bashrc\n")
+		return fmt.Errorf("failed to write bashrc file: %w", err)
 	}
 
 	return nil
@@ -135,13 +200,13 @@ func removeContentFromBashrc(content string) error {
 
 	old, err := os.ReadFile(file)
 	if err != nil {
-		return errors.Wrap(err, "failed to read bashrc\n")
+		return fmt.Errorf("failed to read bashrc file: %w", err)
 	}
 
 	_new := strings.ReplaceAll(string(old), content, "")
 	if string(old) != _new {
 		if err = os.WriteFile(file, []byte(_new), utils.PermFile); err != nil {
-			return errors.Wrap(err, "failed to write bashrc\n")
+			return fmt.Errorf("failed to write bashrc file: %w", err)
 		}
 	}
 

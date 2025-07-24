@@ -3,6 +3,7 @@ module github.com/repo-scm/git
 go 1.24.1
 
 require (
+	github.com/manifoldco/promptui v0.9.0
 	github.com/olekukonko/tablewriter v1.0.7
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
@@ -12,6 +13,7 @@ require (
 )
 
 require (
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
