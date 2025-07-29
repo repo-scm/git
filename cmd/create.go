@@ -13,6 +13,7 @@ import (
 	"path"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -24,6 +25,21 @@ import (
 
 var (
 	createName string
+
+	sshfsOptions = []string{
+		"allow_other",
+		"cache=yes",
+		"cache_timeout=115200",
+		"compression=no",
+		"default_permissions",
+		"follow_symlinks",
+		"Cipher=aes128-ctr",
+		"StrictHostKeyChecking=no",
+		"UserKnownHostsFile=/dev/null",
+		"ConnectTimeout=10",
+		"ServerAliveInterval=15",
+		"ServerAliveCountMax=3",
+	}
 )
 
 var createCmd = &cobra.Command{
@@ -81,7 +97,7 @@ func init() {
 	})
 }
 
-func generateHash(name string) string {
+func generateHash(_ string) string {
 	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	result := make([]byte, 7)
 
@@ -136,95 +152,78 @@ func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error
 	return nil
 }
 
-func MountSshfs(_ context.Context, repo, mount string, port int) error {
+func getSshfsOptions() []string {
+	// Check SSHFS version to determine compatible options
+	cmd := exec.Command("sshfs", "--version")
+	output, err := cmd.Output()
+	if err != nil {
+		return sshfsOptions
+	}
+
+	versionStr := string(output)
+	options := sshfsOptions
+
+	// Add newer options if SSHFS version supports them
+	// Note: big_writes was deprecated in FUSE 3.x and causes issues, so we'll skip it
+	// kernel_cache is supported in most versions, but let's be conservative for very old versions
+	if !strings.Contains(versionStr, "SSHFS version 2.8") &&
+		!strings.Contains(versionStr, "SSHFS version 2.7") &&
+		!strings.Contains(versionStr, "SSHFS version 2.6") {
+		options = append(options, "kernel_cache")
+	}
+
+	return options
+}
+
+func MountSshfs(ctx context.Context, repo, mount string, port int) error {
+	var cmdArgs []string
+
 	if repo == "" || mount == "" {
 		return errors.New("repo and mount are required\n")
+	}
+
+	// Parse the repo to get connection details
+	user, host, _ := utils.ParsePath(ctx, repo)
+	if user == "" || host == "" {
+		return errors.New("invalid repo format, expected user@host:/path\n")
 	}
 
 	if err := os.MkdirAll(mount, utils.PermDir); err != nil {
 		return errors.Wrap(err, "failed to make directory\n")
 	}
 
-	// Ensure proper ownership of mount point
 	if err := os.Chown(mount, os.Getuid(), os.Getgid()); err != nil {
 		fmt.Printf("Warning: failed to set ownership of mount point %s: %v\n", mount, err)
 	}
 
-	// Build command arguments
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, repo, path.Clean(mount))
-
-	// Add port
-	cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("port=%d", port))
-
-	// Add minimal required options first - try very basic mount
-	cmdArgs = append(cmdArgs, "-o", "StrictHostKeyChecking=no")
-	cmdArgs = append(cmdArgs, "-o", "UserKnownHostsFile=/dev/null")
-
-	// Add uid/gid - but handle root case specially
-	if os.Getuid() == 0 {
-		// Running as root - don't add uid/gid options, and avoid allow_other
-		cmdArgs = append(cmdArgs, "-o", "umask=022")
-	} else {
-		cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("uid=%d,gid=%d,umask=022", os.Getuid(), os.Getgid()))
-	}
-
-	// For Ubuntu 18.04/22.04 compatibility, try minimal options first
-	cmd := exec.Command("sshfs", cmdArgs...)
-
-	// Set a timeout to prevent hanging
-	cmd.Env = append(os.Environ(), "SSHFS_TIMEOUT=30")
-
-	// Try minimal mount first
-	_, err := cmd.CombinedOutput()
-	if err == nil {
-		fmt.Printf("successfully mounted sshfs at %s\n", path.Clean(mount))
-		return nil
-	}
-
-	// If minimal fails, try with additional hardcoded options
-	// Define the complete set of sshfs options for Ubuntu 18.04/22.04 compatibility
-	additionalOptions := []string{
-		"big_writes",
-		"cache=yes",
-		"cache_timeout=115200",
-		"compression=no",
-		"default_permissions",
-		"follow_symlinks",
-		"kernel_cache",
-	}
-
-	// Reset cmdArgs and add all options
 	cmdArgs = []string{repo, path.Clean(mount)}
 	cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("port=%d", port))
 
-	// Add basic ssh options
-	cmdArgs = append(cmdArgs, "-o", "StrictHostKeyChecking=no")
-	cmdArgs = append(cmdArgs, "-o", "UserKnownHostsFile=/dev/null")
-
 	if os.Getuid() == 0 {
 		cmdArgs = append(cmdArgs, "-o", "umask=022")
 	} else {
 		cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("uid=%d,gid=%d,umask=022", os.Getuid(), os.Getgid()))
 	}
 
-	// Add the additional hardcoded options
-	for _, opt := range additionalOptions {
+	// Get version-appropriate SSHFS options
+	versionOptions := getSshfsOptions()
+	for _, opt := range versionOptions {
 		cmdArgs = append(cmdArgs, "-o", opt)
 	}
 
-	cmd = exec.Command("sshfs", cmdArgs...)
+	// Create command with context timeout
+	cmdCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(cmdCtx, "sshfs", cmdArgs...)
 	cmd.Env = append(os.Environ(), "SSHFS_TIMEOUT=30")
 
-	// Capture both stdout and stderr for better error reporting
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// Clean up the directory we created if mount fails
 		if removeErr := os.RemoveAll(mount); removeErr != nil {
 			fmt.Printf("Warning: failed to clean up mount directory %s: %v\n", mount, removeErr)
 		}
 		errorMsg := string(output)
-		// Check for common authentication issues
 		if strings.Contains(errorMsg, "Permission denied") || strings.Contains(errorMsg, "password") {
 			return errors.Wrapf(err, "failed to mount sshfs - ensure ssh key authentication is set up for user %s", os.Getenv("USER"))
 		}
@@ -253,7 +252,6 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 		if err := os.MkdirAll(item, utils.PermDir); err != nil {
 			return errors.Wrap(err, "failed to make directory\n")
 		}
-		// Ensure proper ownership
 		if err := os.Chown(item, os.Getuid(), os.Getgid()); err != nil {
 			fmt.Printf("Warning: failed to set ownership of %s: %v\n", item, err)
 		}
@@ -272,10 +270,8 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 	)
 
 	if err := cmd.Run(); err != nil {
-		// Clean up the directories we created if mount fails
 		dirsToRemove := []string{mount, upperPath, workPath}
 		for _, dir := range dirsToRemove {
-			// Only remove if it's a subdirectory (not the main mount directory)
 			if dir != mountDir {
 				if removeErr := os.RemoveAll(dir); removeErr != nil {
 					fmt.Printf("Warning: failed to clean up directory %s: %v\n", dir, removeErr)
