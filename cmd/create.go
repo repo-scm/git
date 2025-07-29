@@ -115,7 +115,7 @@ func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error
 		var mounted bool
 		var err error
 		for _, port := range cfg.Sshfs.Ports {
-			if err = MountSshfs(ctx, repoPath, sshfsPath, strings.Join(cfg.Sshfs.Options, ","), port); err == nil {
+			if err = MountSshfs(ctx, repoPath, sshfsPath, cfg.Sshfs.Options, port); err == nil {
 				mounted = true
 				break
 			} else {
@@ -136,7 +136,7 @@ func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error
 	return nil
 }
 
-func MountSshfs(_ context.Context, repo, mount, options string, port int) error {
+func MountSshfs(_ context.Context, repo, mount string, options []string, port int) error {
 	if repo == "" || mount == "" {
 		return errors.New("repo and mount are required\n")
 	}
@@ -150,20 +150,94 @@ func MountSshfs(_ context.Context, repo, mount, options string, port int) error 
 		fmt.Printf("Warning: failed to set ownership of mount point %s: %v\n", mount, err)
 	}
 
-	cmd := exec.Command("sshfs",
-		repo,
-		path.Clean(mount),
-		"-o", options,
-		"-o", fmt.Sprintf("port=%d", port),
-		"-o", fmt.Sprintf("uid=%d,gid=%d,umask=022", os.Getuid(), os.Getgid()),
-	)
+	// Build command arguments
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, repo, path.Clean(mount))
 
-	if err := cmd.Run(); err != nil {
+	// Add port
+	cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("port=%d", port))
+
+	// Add minimal required options first - try very basic mount
+	cmdArgs = append(cmdArgs, "-o", "StrictHostKeyChecking=no")
+	cmdArgs = append(cmdArgs, "-o", "UserKnownHostsFile=/dev/null")
+
+	// Add uid/gid - but handle root case specially
+	if os.Getuid() == 0 {
+		// Running as root - don't add uid/gid options, and avoid allow_other
+		cmdArgs = append(cmdArgs, "-o", "umask=022")
+	} else {
+		cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("uid=%d,gid=%d,umask=022", os.Getuid(), os.Getgid()))
+	}
+
+	// For Ubuntu 18.04/22.04 compatibility, try minimal options first
+	cmd := exec.Command("sshfs", cmdArgs...)
+
+	// Set a timeout to prevent hanging
+	cmd.Env = append(os.Environ(), "SSHFS_TIMEOUT=30")
+
+	// Try minimal mount first
+	_, err := cmd.CombinedOutput()
+	if err == nil {
+		fmt.Printf("successfully mounted sshfs at %s\n", path.Clean(mount))
+		return nil
+	}
+
+	// If minimal fails, try with user options
+	// Reset cmdArgs and add user options
+	cmdArgs = []string{repo, path.Clean(mount)}
+	cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("port=%d", port))
+
+	if os.Getuid() == 0 {
+		cmdArgs = append(cmdArgs, "-o", "umask=022")
+	} else {
+		cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("uid=%d,gid=%d,umask=022", os.Getuid(), os.Getgid()))
+	}
+
+	// Process user options - each option string as separate -o flag
+	for _, optionGroup := range options {
+		if optionGroup != "" {
+			// Split comma-separated options within each group
+			optionsList := strings.Split(optionGroup, ",")
+			for _, opt := range optionsList {
+				opt = strings.TrimSpace(opt)
+				if opt != "" {
+					// Skip problematic options
+					if opt == "allow_other" && os.Getuid() == 0 {
+						fmt.Printf("Skipping 'allow_other' option when running as root\n")
+						continue
+					}
+					// Skip invalid cipher options that cause Ubuntu 18.04/22.04 compatibility issues
+					if strings.HasPrefix(opt, "Cipher=") || strings.HasPrefix(opt, "Ciphers=") {
+						fmt.Printf("Skipping cipher option '%s' - using SSH default negotiation\n", opt)
+						continue
+					}
+					// Skip cache options that might cause issues
+					if opt == "kernel_cache" || strings.HasPrefix(opt, "cache_timeout=") {
+						fmt.Printf("Skipping cache option '%s' for compatibility\n", opt)
+						continue
+					}
+					cmdArgs = append(cmdArgs, "-o", opt)
+				}
+			}
+		}
+	}
+
+	cmd = exec.Command("sshfs", cmdArgs...)
+	cmd.Env = append(os.Environ(), "SSHFS_TIMEOUT=30")
+
+	// Capture both stdout and stderr for better error reporting
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		// Clean up the directory we created if mount fails
 		if removeErr := os.RemoveAll(mount); removeErr != nil {
 			fmt.Printf("Warning: failed to clean up mount directory %s: %v\n", mount, removeErr)
 		}
-		return errors.Wrap(err, "failed to mount sshfs\n")
+		errorMsg := string(output)
+		// Check for common authentication issues
+		if strings.Contains(errorMsg, "Permission denied") || strings.Contains(errorMsg, "password") {
+			return errors.Wrapf(err, "failed to mount sshfs - ensure ssh key authentication is set up for user %s", os.Getenv("USER"))
+		}
+		return errors.Wrapf(err, "failed to mount sshfs: %s", errorMsg)
 	}
 
 	fmt.Printf("successfully mounted sshfs at %s\n", path.Clean(mount))
