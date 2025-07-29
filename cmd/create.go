@@ -185,11 +185,13 @@ func MountSshfs(_ context.Context, repo, mount string, port int) error {
 	// If minimal fails, try with additional hardcoded options
 	// Define the complete set of sshfs options for Ubuntu 18.04/22.04 compatibility
 	additionalOptions := []string{
+		"big_writes",
+		"cache=yes",
+		"cache_timeout=115200",
+		"compression=no",
 		"default_permissions",
 		"follow_symlinks",
-		"cache=yes",
-		"compression=no",
-		"big_writes",
+		"kernel_cache",
 	}
 
 	// Reset cmdArgs and add all options
