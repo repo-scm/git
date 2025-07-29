@@ -7,15 +7,6 @@ overlay:
   mount: "/mnt/repo-scm/git/overlay"
 sshfs:
   mount: "/mnt/repo-scm/git/sshfs"
-  options: [
-    "StrictHostKeyChecking=no",
-    "UserKnownHostsFile=/dev/null",
-    "default_permissions",
-    "follow_symlinks",
-    "cache=yes",
-    "compression=no",
-    "big_writes"
-  ]
   ports: [
     22,
   ]

@@ -115,7 +115,7 @@ func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error
 		var mounted bool
 		var err error
 		for _, port := range cfg.Sshfs.Ports {
-			if err = MountSshfs(ctx, repoPath, sshfsPath, cfg.Sshfs.Options, port); err == nil {
+			if err = MountSshfs(ctx, repoPath, sshfsPath, port); err == nil {
 				mounted = true
 				break
 			} else {
@@ -136,7 +136,7 @@ func runCreate(ctx context.Context, cfg *config.Config, repo, name string) error
 	return nil
 }
 
-func MountSshfs(_ context.Context, repo, mount string, options []string, port int) error {
+func MountSshfs(_ context.Context, repo, mount string, port int) error {
 	if repo == "" || mount == "" {
 		return errors.New("repo and mount are required\n")
 	}
@@ -182,10 +182,23 @@ func MountSshfs(_ context.Context, repo, mount string, options []string, port in
 		return nil
 	}
 
-	// If minimal fails, try with user options
-	// Reset cmdArgs and add user options
+	// If minimal fails, try with additional hardcoded options
+	// Define the complete set of sshfs options for Ubuntu 18.04/22.04 compatibility
+	additionalOptions := []string{
+		"default_permissions",
+		"follow_symlinks",
+		"cache=yes",
+		"compression=no",
+		"big_writes",
+	}
+
+	// Reset cmdArgs and add all options
 	cmdArgs = []string{repo, path.Clean(mount)}
 	cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("port=%d", port))
+
+	// Add basic ssh options
+	cmdArgs = append(cmdArgs, "-o", "StrictHostKeyChecking=no")
+	cmdArgs = append(cmdArgs, "-o", "UserKnownHostsFile=/dev/null")
 
 	if os.Getuid() == 0 {
 		cmdArgs = append(cmdArgs, "-o", "umask=022")
@@ -193,33 +206,9 @@ func MountSshfs(_ context.Context, repo, mount string, options []string, port in
 		cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("uid=%d,gid=%d,umask=022", os.Getuid(), os.Getgid()))
 	}
 
-	// Process user options - each option string as separate -o flag
-	for _, optionGroup := range options {
-		if optionGroup != "" {
-			// Split comma-separated options within each group
-			optionsList := strings.Split(optionGroup, ",")
-			for _, opt := range optionsList {
-				opt = strings.TrimSpace(opt)
-				if opt != "" {
-					// Skip problematic options
-					if opt == "allow_other" && os.Getuid() == 0 {
-						fmt.Printf("Skipping 'allow_other' option when running as root\n")
-						continue
-					}
-					// Skip invalid cipher options that cause Ubuntu 18.04/22.04 compatibility issues
-					if strings.HasPrefix(opt, "Cipher=") || strings.HasPrefix(opt, "Ciphers=") {
-						fmt.Printf("Skipping cipher option '%s' - using SSH default negotiation\n", opt)
-						continue
-					}
-					// Skip cache options that might cause issues
-					if opt == "kernel_cache" || strings.HasPrefix(opt, "cache_timeout=") {
-						fmt.Printf("Skipping cache option '%s' for compatibility\n", opt)
-						continue
-					}
-					cmdArgs = append(cmdArgs, "-o", opt)
-				}
-			}
-		}
+	// Add the additional hardcoded options
+	for _, opt := range additionalOptions {
+		cmdArgs = append(cmdArgs, "-o", opt)
 	}
 
 	cmd = exec.Command("sshfs", cmdArgs...)

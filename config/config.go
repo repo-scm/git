@@ -35,9 +35,8 @@ type Overlay struct {
 }
 
 type Sshfs struct {
-	Mount   string   `yaml:"mount"`
-	Options []string `yaml:"options"`
-	Ports   []int    `yaml:"ports"`
+	Mount string `yaml:"mount"`
+	Ports []int  `yaml:"ports"`
 }
 
 func LoadConfig(name string) (*Config, error) {
