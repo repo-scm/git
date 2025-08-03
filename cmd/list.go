@@ -20,7 +20,6 @@ import (
 )
 
 var (
-	listAll     bool
 	verboseMode bool
 )
 
@@ -32,10 +31,6 @@ var listCmd = &cobra.Command{
 		var name string
 		ctx := context.Background()
 		config := GetConfig()
-		if len(args) == 0 && !listAll {
-			_, _ = fmt.Fprintln(os.Stderr, "Please specify a workspace name")
-			os.Exit(1)
-		}
 		if len(args) == 1 {
 			name = args[0]
 		}
@@ -57,7 +52,6 @@ type Workspace struct {
 func init() {
 	rootCmd.AddCommand(listCmd)
 
-	listCmd.PersistentFlags().BoolVarP(&listAll, "all", "a", false, "list all workspaces")
 	listCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "list in verbose mode")
 
 	listCmd.SetUsageFunc(func(cmd *cobra.Command) error {
@@ -86,8 +80,8 @@ func init() {
 		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "\nExample:\n")
 		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git list your_workspace\n")
 		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git list your_workspace --verbose\n")
-		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git list --all\n")
-		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git list --all --verbose\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git list\n")
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "  git list --verbose\n")
 		return nil
 	})
 }

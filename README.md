@@ -57,10 +57,10 @@ sudo git list <workspace_name>
 sudo git list <workspace_name> --verbose
 
 # List all workspaces
-sudo git list --all
+sudo git list
 
 # List all workspaces in verbose mode
-sudo git list --all --verbose
+sudo git list --verbose
 ```
 
 #### 4. Run git workspace
