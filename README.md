@@ -47,7 +47,7 @@ sudo git create user@host:/remote/repo [--name string]
 
 > **Notes**: Workspace name is set to `<repo_name>-<7_bit_hash>` in default if `--name string` not set.
 
-#### 3. List git workspaces
+#### 3. List git workspace
 
 ```bash
 # List a workspace
