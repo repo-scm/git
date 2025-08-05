@@ -9,7 +9,7 @@
 
 ## Introduction
 
-git workspace with copy-on-write
+git workspace with overlay
 
 
 
