@@ -66,6 +66,7 @@ sudo git list --verbose
 #### 4. Run git workspace
 
 ```bash
+# Run a workspace
 sudo git run <workspace_name>
 ```
 
