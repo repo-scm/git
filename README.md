@@ -13,6 +13,29 @@ git workspace with overlay
 
 
 
+## Settings
+
+[git](https://github.com/repo-scm/git) parameters can be set in the directory `$HOME/.repo-scm/git.yaml`.
+
+An example of settings can be found in [git.yaml](https://github.com/repo-scm/git/blob/main/config/git.yaml).
+
+```yaml
+models:
+  - provider_name: "litellm"
+    api_base: "http://localhost:4000"
+    api_key: "noop"
+    model_id: "anthropic/claude-opus-4-20250514"
+overlay:
+  mount: "/mnt/repo-scm/git/overlay"
+sshfs:
+  mount: "/mnt/repo-scm/git/sshfs"
+  ports: [
+    22,
+  ]
+```
+
+
+
 ## Usage
 
 ### Prerequisites
@@ -112,29 +135,6 @@ sudo git chat <workspace_name> [prompt] [--model string] --quiet
 
 ```bash
 sudo git mcp <workspace_name>
-```
-
-
-
-## Settings
-
-[git](https://github.com/repo-scm/git) parameters can be set in the directory `$HOME/.repo-scm/git.yaml`.
-
-An example of settings can be found in [git.yaml](https://github.com/repo-scm/git/blob/main/config/git.yaml).
-
-```yaml
-models:
-  - provider_name: "litellm"
-    api_base: "http://localhost:4000"
-    api_key: "noop"
-    model_id: "anthropic/claude-opus-4-20250514"
-overlay:
-  mount: "/mnt/repo-scm/git/overlay"
-sshfs:
-  mount: "/mnt/repo-scm/git/sshfs"
-  ports: [
-    22,
-  ]
 ```
 
 
