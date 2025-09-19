@@ -175,6 +175,29 @@ func getSshfsOptions() []string {
 	return options
 }
 
+func ensureMountDirectories(mountPath string) error {
+	// Get the parent directory of the mount path
+	parentDir := path.Dir(mountPath)
+
+	if err := os.MkdirAll(parentDir, utils.PermDir); err != nil {
+		if os.IsPermission(err) {
+			return errors.Wrapf(err, "failed to create directory %s - you may need to run: sudo mkdir -p %s && sudo chown $USER:$USER %s", parentDir, parentDir, parentDir)
+		}
+		return errors.Wrapf(err, "failed to create directory %s", parentDir)
+	}
+
+	// Set ownership to current user
+	if err := os.Chown(parentDir, os.Getuid(), os.Getgid()); err != nil {
+		if stat, statErr := os.Stat(parentDir); statErr == nil {
+			if stat.Sys() != nil {
+				fmt.Printf("Warning: could not change ownership of %s, but directory exists\n", parentDir)
+			}
+		}
+	}
+
+	return nil
+}
+
 func MountSshfs(ctx context.Context, repo, mount string, port int) error {
 	var cmdArgs []string
 
@@ -188,13 +211,21 @@ func MountSshfs(ctx context.Context, repo, mount string, port int) error {
 		return errors.New("invalid repo format, expected user@host:/path\n")
 	}
 
-	if err := os.MkdirAll(mount, utils.PermDir); err != nil {
+	// Ensure parent directories exist with proper permissions
+	if err := ensureMountDirectories(mount); err != nil {
+		return errors.New("failed to create directory\n")
+	}
+
+	// Create the specific mount directory
+	if err := os.MkdirAll(mount, 0755); err != nil {
 		return errors.Wrap(err, "failed to make directory\n")
 	}
 
-	if err := os.Chown(mount, os.Getuid(), os.Getgid()); err != nil {
-		fmt.Printf("Warning: failed to set ownership of mount point %s: %v\n", mount, err)
-	}
+	// Set proper ownership and permissions
+	_ = os.Chown(mount, os.Getuid(), os.Getgid())
+
+	// Ensure the mount directory has correct permissions
+	_ = os.Chmod(mount, utils.PermDir)
 
 	cmdArgs = []string{repo, path.Clean(mount)}
 	cmdArgs = append(cmdArgs, "-o", fmt.Sprintf("port=%d", port))
@@ -240,6 +271,11 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 		return errors.New("repo and mount are required\n")
 	}
 
+	// Ensure parent directories exist with proper permissions
+	if err := ensureMountDirectories(mount); err != nil {
+		return errors.New("failed to create directory\n")
+	}
+
 	mountDir := path.Dir(path.Clean(mount))
 	mountName := path.Base(path.Clean(mount))
 
@@ -249,12 +285,11 @@ func MountOverlay(_ context.Context, repo, mount string) error {
 	dirs := []string{mount, upperPath, workPath}
 
 	for _, item := range dirs {
-		if err := os.MkdirAll(item, utils.PermDir); err != nil {
+		if err := os.MkdirAll(item, 0755); err != nil {
 			return errors.Wrap(err, "failed to make directory\n")
 		}
-		if err := os.Chown(item, os.Getuid(), os.Getgid()); err != nil {
-			fmt.Printf("Warning: failed to set ownership of %s: %v\n", item, err)
-		}
+		_ = os.Chown(item, os.Getuid(), os.Getgid())
+		_ = os.Chmod(item, utils.PermDir)
 	}
 
 	// Test write access to upper directory before mounting

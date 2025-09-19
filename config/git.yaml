@@ -4,9 +4,9 @@ models:
     api_key: "noop"
     model_id: "anthropic/claude-opus-4-20250514"
 overlay:
-  mount: "/mnt/repo-scm/git/overlay"
+  mount: "/path/to/overlay"
 sshfs:
-  mount: "/mnt/repo-scm/git/sshfs"
+  mount: "/path/to/sshfs"
   ports: [
     22,
   ]

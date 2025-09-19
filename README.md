@@ -26,9 +26,9 @@ models:
     api_key: "noop"
     model_id: "anthropic/claude-opus-4-20250514"
 overlay:
-  mount: "/mnt/repo-scm/git/overlay"
+  mount: "/path/to/overlay"
 sshfs:
-  mount: "/mnt/repo-scm/git/sshfs"
+  mount: "/path/to/sshfs"
   ports: [
     22,
   ]
@@ -52,20 +52,20 @@ sudo apt install -y sshfs util-linux
 
 ```bash
 # Install toolchains
-sudo git install
+git install
 
 # Show install status
-sudo git status
+git status
 ```
 
 #### 2. Create git workspace
 
 ```bash
 # Create workspace for local repo
-sudo git create /local/repo [--name string]
+git create /local/repo [--name string]
 
 # Create workspace for remote repo
-sudo git create user@host:/remote/repo [--name string]
+git create user@host:/remote/repo [--name string]
 ```
 
 > **Notes**: Workspace name is set to `<repo_name>-<7_bit_hash>` in default if `--name string` not set.
@@ -74,23 +74,23 @@ sudo git create user@host:/remote/repo [--name string]
 
 ```bash
 # List a workspace
-sudo git list <workspace_name>
+git list <workspace_name>
 
 # List a workspace in verbose mode
-sudo git list <workspace_name> --verbose
+git list <workspace_name> --verbose
 
 # List all workspaces
-sudo git list
+git list
 
 # List all workspaces in verbose mode
-sudo git list --verbose
+git list --verbose
 ```
 
 #### 4. Run git workspace
 
 ```bash
 # Run a workspace
-sudo git run <workspace_name>
+git run <workspace_name>
 ```
 
 ##### 4.1. Clean directories in workspace
@@ -113,20 +113,20 @@ git clean --force /absolute/path/to/directory
 
 ```bash
 # Delete a workspace
-sudo git delete <workspace_name>
+git delete <workspace_name>
 
 # Delete all workspaces
-sudo git delete --all
+git delete --all
 ```
 
 #### 6. Chat with git workspace
 
 ```bash
 # Chat with workspace in interactive mode
-sudo git chat <workspace_name> [prompt] [--model string]
+git chat <workspace_name> [prompt] [--model string]
 
 # Chat with workspace in quiet mode
-sudo git chat <workspace_name> [prompt] [--model string] --quiet
+git chat <workspace_name> [prompt] [--model string] --quiet
 ```
 
 > **Notes**: Model name is set to `litellm/anthropic/claude-opus-4-20250514` in default if `--model string` not set.
@@ -134,10 +134,89 @@ sudo git chat <workspace_name> [prompt] [--model string] --quiet
 #### 7. MCP for git workspace
 
 ```bash
-sudo git mcp <workspace_name>
+git mcp <workspace_name>
 ```
 
 
+
+## FAQ
+
+### Q: Getting "Connection reset by peer" error when creating workspace
+
+**A:** This error typically occurs due to SSH connectivity issues. Follow these steps to resolve:
+
+1. **Check SSH port configuration**
+   - Verify your SSH server is running and note the port
+   - Test connectivity: `ssh -p <PORT> user@host 'echo "test"'`
+   - Update `~/.repo-scm/git.yaml` to include the correct port:
+   ```yaml
+   sshfs:
+     mount: "/path/to/sshfs"
+     ports: [
+       2220,  # Specific SSH port
+       22,    # Default SSH port
+     ]
+   ```
+
+2. **Set up SSH key authentication**
+   ```bash
+   # Generate SSH key pair
+   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N '' -C 'user@localhost'
+
+   # Add public key to authorized_keys
+   cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+   chmod 600 ~/.ssh/authorized_keys
+   chmod 700 ~/.ssh
+   ```
+
+3. **Test SSH connectivity**
+   ```bash
+   ssh -p <PORT> -o StrictHostKeyChecking=no user@host 'echo "SSH works"'
+   ```
+
+### Q: "fusermount3: option allow_other only allowed" error
+
+**A:** Enable the `user_allow_other` option in fuse configuration:
+
+1. **Edit fuse configuration**
+   ```bash
+   sudo sed -i 's/#user_allow_other/user_allow_other/' /etc/fuse.conf
+   ```
+
+2. **Verify the change**
+   ```bash
+   cat /etc/fuse.conf | grep user_allow_other
+   ```
+
+3. **No restart required** - change takes effect immediately
+
+### Q: Workspace creation hangs or times out
+
+**A:** This usually indicates network or authentication issues:
+
+1. **Check SSH server status**
+   ```bash
+   sudo systemctl status ssh
+   # Check which port SSH is listening on
+   sudo ss -tlnp | grep ssh
+   ```
+
+2. **Test with shorter timeout**
+   ```bash
+   ssh -o ConnectTimeout=5 -p <PORT> user@host 'echo "quick test"'
+   ```
+
+### Q: "Directory not empty" errors when cleaning workspace
+
+**A:** Use the built-in clean command instead of `rm -rf`:
+
+```bash
+# Inside workspace - use git clean
+git clean build/ temp/
+
+# Outside workspace - use with --force
+git clean --force /absolute/path/to/directory
+```
 
 ## Sandbox
 
